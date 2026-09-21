@@ -49,10 +49,10 @@ async function upload(event: Event) {
     <div class="settings-fields">
       <template v-for="(field,index) in configFields" :key="field.key ?? index">
         <h3 v-if="field.type === 'title'">{{ field.name }}</h3>
-        <label v-else-if="field.key" class="settings-field">
+        <label v-else-if="field.key && !(values.backgroundType === 'bing' && (field.key === 'lightBackgroundUrl' || field.key === 'darkBackgroundUrl'))" class="settings-field">
           <span>{{ field.name }}</span>
           <input v-if="field.type === 'switch'" type="checkbox" :checked="Boolean(values[field.key])" @change="update(field.key,($event.target as HTMLInputElement).checked)">
-          <select v-else-if="field.type === 'select'" :value="values[field.key]" @change="update(field.key,($event.target as HTMLSelectElement).value)"><option v-for="option in field.options?.split(',')" :key="option" :value="option">{{ option }}</option></select>
+          <select v-else-if="field.type === 'select'" :value="values[field.key]" @change="update(field.key,($event.target as HTMLSelectElement).value)"><option v-for="option in field.options?.split(',')" :key="option" :value="option">{{ field.key === 'backgroundType' ? ({ image: '自定义图片', video: '自定义视频', bing: 'Bing 每日壁纸' } as Record<string, string>)[option] : option }}</option></select>
           <input v-else-if="field.type === 'number'" type="number" :value="values[field.key]" @change="update(field.key,Number(($event.target as HTMLInputElement).value))">
           <textarea v-else-if="field.type === 'richtext'" :value="String(values[field.key] ?? '')" @change="update(field.key,($event.target as HTMLTextAreaElement).value)" />
           <input v-else type="text" :value="values[field.key]" @input="update(field.key,($event.target as HTMLInputElement).value)">

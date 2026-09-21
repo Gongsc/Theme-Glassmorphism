@@ -359,22 +359,22 @@
         "name": "背景类型",
         "type": "select",
         "default": "image",
-        "options": "image,video",
-        "help": "image=图片； video=视频。"
+        "options": "image,video,bing",
+        "help": "image=自定义图片；video=自定义视频；bing=Bing 每日壁纸（中国区，亮色和暗色模式共用）。"
       },
       {
         "key": "lightBackgroundUrl",
         "name": "亮色模式背景地址",
         "type": "string",
         "default": "",
-        "help": "支持 http(s) URL、站内 / 路径；持久本地文件放在 data/theme/user-assets/ 后填写 local:文件名。"
+        "help": "图片或视频模式使用。支持 http(s) URL、站内 / 路径；持久本地文件放在 data/theme/user-assets/ 后填写 local:文件名。"
       },
       {
         "key": "darkBackgroundUrl",
         "name": "暗色模式背景地址",
         "type": "string",
         "default": "",
-        "help": "支持 http(s) URL、站内 / 路径；持久本地文件放在 data/theme/user-assets/ 后填写 local:文件名。"
+        "help": "图片或视频模式使用。支持 http(s) URL、站内 / 路径；持久本地文件放在 data/theme/user-assets/ 后填写 local:文件名。"
       },
       {
         "key": "backgroundBlur",

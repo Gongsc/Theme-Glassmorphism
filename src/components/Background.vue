@@ -1,15 +1,23 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useAppStore } from '@/stores/app'
 
 const appStore = useAppStore()
 
 const isLoaded = ref(false)
 const hasError = ref(false)
+const bingDay = ref(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()))
+let bingDayTimer: ReturnType<typeof setInterval> | undefined
 
 const showBackground = computed(() => appStore.backgroundEnabled)
-const currentUrl = computed(() => showBackground.value ? appStore.currentBackgroundUrl : '')
+const currentUrl = computed(() => {
+  if (!showBackground.value)
+    return ''
+  const url = appStore.currentBackgroundUrl
+  return appStore.backgroundType === 'bing' ? `${url}&day=${bingDay.value}` : url
+})
 const backgroundType = computed(() => appStore.backgroundType)
+const isImageBackground = computed(() => backgroundType.value === 'image' || backgroundType.value === 'bing')
 const hasCustomBackground = computed(() => showBackground.value && !!currentUrl.value)
 const showBackgroundOverlay = computed(() => appStore.backgroundOverlay > 0)
 
@@ -115,7 +123,7 @@ watch([showBackground, currentUrl, backgroundType], ([enabled, url, type]) => {
     return
   }
 
-  if (type === 'image') {
+  if (type === 'image' || type === 'bing') {
     loadImage(url)
   }
   else if (type === 'video') {
@@ -125,7 +133,15 @@ watch([showBackground, currentUrl, backgroundType], ([enabled, url, type]) => {
   }
 }, { immediate: true })
 
+onMounted(() => {
+  bingDayTimer = setInterval(() => {
+    bingDay.value = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+  }, 60 * 60 * 1000)
+})
+
 onUnmounted(() => {
+  if (bingDayTimer)
+    clearInterval(bingDayTimer)
   resetBackgroundState()
 })
 </script>
@@ -144,7 +160,7 @@ onUnmounted(() => {
     <Transition name="fade">
       <div v-if="showMediaBackground" class="background-media" :style="backgroundStyle">
         <div
-          v-if="backgroundType === 'image'"
+          v-if="isImageBackground"
           class="background-image"
           :style="{ backgroundImage: `url(${currentUrl})` }"
         />

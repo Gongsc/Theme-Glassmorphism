@@ -1181,11 +1181,11 @@ const useAppStore = defineStore('app', () => {
   // 计算属性：自定义背景配置
   const backgroundEnabled = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'backgroundEnabled', false))
 
-  const backgroundType = computed<'image' | 'video'>(() => {
+  const backgroundType = computed<'image' | 'video' | 'bing'>(() => {
     const settings = themeSettings.value
     if (typeof settings.backgroundType === 'string') {
       const type = settings.backgroundType
-      if (type === 'image' || type === 'video') {
+      if (type === 'image' || type === 'video' || type === 'bing') {
         return type
       }
     }
@@ -1246,6 +1246,8 @@ const useAppStore = defineStore('app', () => {
 
   // 计算属性：当前主题模式下的背景 URL
   const currentBackgroundUrl = computed<string>(() => {
+    if (backgroundType.value === 'bing')
+      return 'https://bing.biturl.top/?resolution=1920&format=image&index=0&mkt=zh-CN'
     if (resolvedThemeMode.value === 'dark') {
       return darkBackgroundUrl.value
     }
