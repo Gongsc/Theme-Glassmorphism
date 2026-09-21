@@ -47,6 +47,9 @@
     "lightBackgroundUrl": "",
     "darkBackgroundUrl": "",
     "backgroundBlur": 0,
-    "backgroundOverlay": 0
+    "backgroundOverlay": 0,
+    "homepageMultiPing": true,
+    "homepageMultiPingTaskIds": "",
+    "homepageMultiPingCount": 3
   }
 }

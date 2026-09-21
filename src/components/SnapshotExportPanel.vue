@@ -376,7 +376,7 @@ async function exportJson(): Promise<void> {
       yieldToBrowser,
     )
     downloadText(
-      `komari-snapshot-${Date.now()}.json`,
+      `monitor-snapshot-${Date.now()}.json`,
       content,
       'application/json;charset=utf-8',
     )
@@ -404,7 +404,7 @@ async function exportCsv(): Promise<void> {
     await yieldToBrowser()
     const exportRows = await buildRowsAsync()
     downloadText(
-      `komari-snapshot-${Date.now()}.csv`,
+      `monitor-snapshot-${Date.now()}.csv`,
       await buildSnapshotCsvAsync(csvColumns, exportRows, yieldToBrowser),
       'text/csv;charset=utf-8',
       { bom: true },

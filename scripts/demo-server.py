@@ -14,7 +14,7 @@ class Handler(BaseHTTPRequestHandler):
                 nodes.append(dict(id=i+1,name=name,sort=i,public=True,online=i<5,country=country,last_seen=now-7200,metrics=m if i<5 else None,os='Ubuntu 24.04',kernel='6.8.0',arch='x86_64',virt='kvm',cpu_name='AMD EPYC',cpu_cores=4,mem_total=8*G,swap_total=G,disk_total=80*G,agent_version='1.0',price=5,currency='USD',billing_cycle='monthly',expires_at=None,traffic_limit=500*G,traffic_mode='sum',traffic_reset_day=1,total_rx=80*G,total_tx=40*G,month_rx=20*G,month_tx=10*G,month_start='',day_rx=3*G,day_tx=G))
             data = dict(nodes=nodes)
         elif '/metrics' in self.path:
-            data = dict(metrics=[dict(ts=now-(59-i)*60,cpu=30+15*math.sin(i/5),mem_used=3*G,disk_used=20*G,net_rx=800000+300000*math.sin(i/4),net_tx=300000) for i in range(60)],ping=[dict(task_id=1,ts=now-(59-i)*60,latency=45+8*math.sin(i/5)) for i in range(60)],probes={'1':'演示网络延迟'},loss={})
+            data = dict(metrics=[dict(ts=now-(59-i)*60,cpu=30+15*math.sin(i/5),mem_used=3*G,disk_used=20*G,net_rx=800000+300000*math.sin(i/4),net_tx=300000) for i in range(60)],ping=[dict(task_id=task,ts=now-(59-i)*60,latency=base+8*math.sin(i/5),loss=0) for task,base in [(1,165),(2,157),(3,132)] for i in range(60)],probes={'1':'浙江电信','2':'浙江联通','3':'浙江移动'},loss={})
         else:
             self.send_error(404); return
         self.send_response(200); self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(json.dumps(data).encode())

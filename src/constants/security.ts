@@ -8,7 +8,7 @@ export const SECURITY_CONFIG = {
     formulaPrefixes: ['=', '+', '-', '@'],
   },
   export: {
-    secondaryPasswordSessionKey: 'komari-theme-export-secondary-password-verified',
+    secondaryPasswordSessionKey: 'glassmorphism-export-secondary-password-verified',
   },
 } as const
 

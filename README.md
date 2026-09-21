@@ -1,8 +1,10 @@
 # Glassmorphism for 极简探针
 
+![Glassmorphism 主题首页预览](preview.png)
+
 将 [sanrokamlan-prog/komari-theme-Glassmorphism](https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism) 原主题移植到 [极简探针 Monitor](https://github.com/monitor-probe/monitor)。基于原版 v3.3.7 的 Vue 源码、组件、样式与资源，使用 Monitor REST / WebSocket 适配层替换 Komari 数据源。LuminaPlus 仅作为本机设置与静态配置的实现参考。
 
-2.0 取代此前自行设计的 React 界面；保留原项目 MIT 许可和作者署名。
+当前主题版本为 1.0.0，保留原项目 MIT 许可和作者署名。
 
 ## 已保留的原版界面与功能
 
@@ -34,6 +36,7 @@
 
 ```text
 theme.json
+preview.png
 LICENSE
 dist/
   index.html
@@ -44,7 +47,9 @@ dist/
 
 也可手动解压到 `<themes-dir>/glassmorphism/`。
 
-主题卡片上的 GitHub 更新需要在本仓库发布正式 Release，并上传名称精确为 `theme.tar.gz` 的附件。仅推送源码不会形成在线更新；Release 标签去掉 `v` 后应与 `theme.json` 的版本一致。
+`preview.png` 是演示数据下的主题首页截图，后台主题卡片会显示这张图。更新界面后，可启动 `python3 scripts/demo-server.py` 与 `npm run dev`，在 1440×900 视口重新截取首页并替换仓库根目录的 `preview.png`。
+
+主题卡片上的 GitHub 更新使用正式 Release 中名称精确为 `theme.tar.gz` 的附件。将 `theme.json`、`package.json` 和 `package-lock.json` 的版本设为同一个版本号后，推送 `x.x.x` 格式的 tag（例如 `1.0.0`），GitHub Actions 会自动构建主题包并创建 Release。其他格式的 tag 不会发布成功。
 
 ## 开发
 
@@ -70,3 +75,11 @@ npm run package
 ## 验证
 
 执行 Vue/TypeScript 检查、生产构建、适配层 lint 与字段映射回归测试。浏览器使用演示接口验证地球/地图及设置。尚未连接用户真实 hub 部署验收，不能据此宣称所有高级工具已完成生产验证。
+
+## 首页多线路延迟
+
+普通节点卡片默认显示最多 3 条探测线路，每条线路左侧为最新延迟与历史色条，右侧为最近 1 小时窗口丢包率与历史色条。线路名称来自 Monitor 的 `probes`，窗口丢包率来自 `loss`，不平均样本桶丢包百分比。没有真实样本显示空白，超时显示“超时”。
+
+在主题设置末尾的「Monitor · 首页多线路延迟」中可以开关多线路、输入按顺序排列的探测任务完整名称（例如 `浙江电信,浙江联通,浙江移动`，也兼容任务 ID），并指定 1–8 条显示数量。留空自动显示可用线路。mini 卡片与列表保持原版摘要。点击任意线路打开该节点延迟详情。每分钟刷新，离开首页、切换到后台标签页时停止定时刷新；请求共用历史缓存。配置可随原主题设置导入导出。
+
+后台延迟列表不显示任务 ID，直接复制「名称」列即可。名称必须完全一致，以逗号分隔；同名任务会全部匹配，建议使用不同名称。旧版 ID 配置继续有效。

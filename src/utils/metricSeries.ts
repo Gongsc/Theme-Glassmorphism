@@ -137,7 +137,7 @@ function comparePingTaskIds(leftId: string, rightId: string, taskOrder: Readonly
   return leftId.localeCompare(rightId, undefined, { numeric: true })
 }
 
-/** Keep metric lines aligned with the ordered task list returned by Komari. */
+/** Keep metric lines aligned with the ordered task list returned by the backend. */
 export function comparePingTaskOrder(
   leftTags: Record<string, unknown> | undefined,
   rightTags: Record<string, unknown> | undefined,

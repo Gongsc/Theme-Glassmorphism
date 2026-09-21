@@ -446,6 +446,7 @@ const nodeCardGridClass = computed(() => {
                 <TabsList class="w-max h-8 bg-background/50 backdrop-blur-xl rounded-md pointer-events-auto">
                   <TabsTrigger
                     v-for="g in groups" :key="g.name" :value="g.name"
+                    @click="g.name === 'all' && (activeQuickControl = null)"
                     class="h-6.5 flex-none shrink-0 text-xs border-none data-[state=active]:text-selection shadow-none rounded-sm"
                   >
                     {{ g.tab }}

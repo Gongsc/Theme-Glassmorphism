@@ -110,7 +110,7 @@ const useNodesStore = defineStore('nodes', () => {
   // ===== 计算属性 =====
   const nodeIndex = new Map<string, NodeData>()
 
-  /** 可见节点（未登录时 Komari hidden 节点不参与公开首页展示） */
+  /** 可见节点（未登录时 hidden 节点不参与公开首页展示） */
   const visibleNodes = computed(() => appStore.privateFeaturesAllowed ? nodes.value : nodes.value.filter(n => !n.hidden))
 
   /** 在线节点数量 */

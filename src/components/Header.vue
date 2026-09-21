@@ -85,7 +85,7 @@ function handleButtonClick(action: string) {
   }
 }
 
-const sitename = computed(() => appStore.publicSettings?.sitename || 'Komari Monitor')
+const sitename = computed(() => appStore.publicSettings?.sitename || 'Monitor')
 </script>
 
 <template>

@@ -1,10 +1,10 @@
 {
-  "name": "Komari Glassmorphism",
+  "name": "Glassmorphism",
   "short": "Glassmorphism",
-  "description": "A Glassmorphism theme for Komari",
-  "version": "3.3.7",
+  "description": "A glassmorphism theme for Monitor",
+  "version": "1.0.0",
   "author": "sanrokamlan",
-  "url": "https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism",
+  "url": "https://github.com/Gongsc/Theme-Glassmorphism",
   "preview": "preview.png",
   "configuration": {
     "type": "managed",
@@ -389,6 +389,31 @@
         "type": "number",
         "default": 0,
         "help": "范围 -100 到 100；0 关闭，正数加深，负数降低透明度。"
+      },
+      {
+        "name": "Monitor · 首页多线路延迟",
+        "type": "title"
+      },
+      {
+        "key": "homepageMultiPing",
+        "name": "卡片显示多线路延迟",
+        "type": "switch",
+        "default": true,
+        "help": "普通卡片按线路显示延迟、窗口丢包率和历史色条；mini 与列表保留单线路摘要。"
+      },
+      {
+        "key": "homepageMultiPingTaskIds",
+        "name": "首页探测线路名称或 ID",
+        "type": "string",
+        "default": "",
+        "help": "按显示顺序填写后台延迟监控的完整名称，例如：浙江电信,浙江联通,浙江移动。使用逗号分隔，名称须完全一致；也兼容任务 ID。留空自动显示可用线路；未匹配、未绑定或无采样显示空白。同名任务会全部匹配。"
+      },
+      {
+        "key": "homepageMultiPingCount",
+        "name": "最多显示线路数",
+        "type": "number",
+        "default": 3,
+        "help": "每张卡片显示 1–8 条线路，默认 3 条。色条展示最近 1 小时，数字延迟为最新采样，丢包率使用后端窗口汇总。"
       }
     ]
   }

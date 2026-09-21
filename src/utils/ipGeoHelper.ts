@@ -17,7 +17,7 @@ export interface IpGeo {
   asn?: string
 }
 
-const CACHE_PREFIX = 'komari-theme-emerald:ipgeo'
+const CACHE_PREFIX = 'glassmorphism:ipgeo'
 const CACHE_VERSION = 3
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000 // 30 天
 const NEGATIVE_CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 小时

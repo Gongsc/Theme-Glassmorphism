@@ -220,11 +220,11 @@ async function exportAudit(format: 'json' | 'csv'): Promise<void> {
         total: exportRows.length,
         logs: exportRows.map(buildAuditJsonRecord),
       }, null, 2)
-      downloadText(`komari-audit-${filterName}-${timestamp}.json`, content, 'application/json;charset=utf-8')
+      downloadText(`monitor-audit-${filterName}-${timestamp}.json`, content, 'application/json;charset=utf-8')
     }
     else {
       const content = await buildSnapshotCsvAsync(auditCsvColumns, exportRows, yieldToBrowser)
-      downloadText(`komari-audit-${filterName}-${timestamp}.csv`, content, 'text/csv;charset=utf-8', { bom: true })
+      downloadText(`monitor-audit-${filterName}-${timestamp}.csv`, content, 'text/csv;charset=utf-8', { bom: true })
     }
 
     void recordVisitorEvent({

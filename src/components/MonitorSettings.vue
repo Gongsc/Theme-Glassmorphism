@@ -55,7 +55,7 @@ async function upload(event: Event) {
           <select v-else-if="field.type === 'select'" :value="values[field.key]" @change="update(field.key,($event.target as HTMLSelectElement).value)"><option v-for="option in field.options?.split(',')" :key="option" :value="option">{{ option }}</option></select>
           <input v-else-if="field.type === 'number'" type="number" :value="values[field.key]" @change="update(field.key,Number(($event.target as HTMLInputElement).value))">
           <textarea v-else-if="field.type === 'richtext'" :value="String(values[field.key] ?? '')" @change="update(field.key,($event.target as HTMLTextAreaElement).value)" />
-          <input v-else type="text" :value="values[field.key]" @change="update(field.key,($event.target as HTMLInputElement).value)">
+          <input v-else type="text" :value="values[field.key]" @input="update(field.key,($event.target as HTMLInputElement).value)">
           <small>{{ field.help }}</small>
         </label>
       </template>

@@ -1,8 +1,8 @@
 {
   "name": "Glassmorphism · 玻璃拟态",
   "short": "glassmorphism",
-  "description": "原版 Komari Glassmorphism 的极简探针移植版，保留地球、玻璃配色与节点界面。",
-  "version": "2.0.0",
-  "author": "sanrokamlan / Monitor port contributors",
+  "description": "极简探针玻璃拟态主题，提供地球视图与节点界面。",
+  "version": "1.0.0",
+  "author": "Theme Glassmorphism contributors",
   "url": "https://github.com/Gongsc/Theme-Glassmorphism"
 }

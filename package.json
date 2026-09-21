@@ -16,7 +16,7 @@
     "lint": "oxlint src/monitor --deny-warnings",
     "preview": "vite preview",
     "package": "npm run build && node scripts/package.mjs",
-    "test": "node --experimental-strip-types src/monitor/adapter.test.ts"
+    "test": "node --experimental-strip-types src/monitor/adapter.test.ts && node --experimental-strip-types src/monitor/pingRows.test.ts"
   },
   "dependencies": {
     "@iconify/vue": "^4.3.0",
@@ -62,5 +62,5 @@
     "vue-tsc": "^3.2.4",
     "oxlint": "^1.79.0"
   },
-  "version": "2.0.0"
+  "version": "1.0.0"
 }

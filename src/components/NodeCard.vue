@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
 import { ProgressThin } from '@/components/ui/progress-thin'
+import NodeMultiPing from '@/components/NodeMultiPing.vue'
 import { useNodePingDisplay } from '@/composables/useNodePingDisplay'
 import { useAppStore } from '@/stores/app'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, getStatus, getUptimeDays } from '@/utils/helper'
@@ -56,6 +57,7 @@ const NODE_METRIC_ICONS = {
   traffic: 'tabler:arrows-transfer-up-down',
 } as const
 
+const multiPing = computed(() => appStore.publicSettings?.theme_settings?.homepageMultiPing !== false && appStore.nodeCardSize !== 'mini')
 const isMiniNodeCard = computed(() => appStore.nodeCardSize === 'mini')
 const nodeCardXSize = computed(() => appStore.nodeCardSize === 'large' ? 'large' : 'medium')
 const nodeCardContentClass = computed(() => appStore.nodeCardSize === 'large' ? 'gap-4' : isMiniNodeCard.value ? 'gap-2' : 'gap-3')
@@ -89,7 +91,7 @@ const {
   lossDisplay,
   latencyPanelTooltip,
   lossPanelTooltip,
-} = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled })
+} = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled && !multiPing.value })
 
 const trafficUsedPercentage = computed(() => getTrafficUsedPercentage(props.node))
 const trafficUsed = computed(() => getTrafficUsed(props.node))
@@ -447,8 +449,9 @@ function hasRegion(region: string | null | undefined): boolean {
           </div>
         </div>
 
-        <!-- 延迟 + 丢包 -->
-        <div class="grid grid-cols-2 gap-1.5">
+        <!-- 原版单线路摘要与多线路监测共用详情入口 -->
+        <NodeMultiPing v-if="multiPing" :uuid="node.uuid" :name="node.name" :enabled="Boolean(props.pingEnabled)" @open="emit('pingClick')" />
+        <div v-else class="grid grid-cols-2 gap-1.5">
           <button
             type="button"
             class="group/panel relative flex flex-col rounded-lg bg-slate-500/5"

@@ -33,8 +33,8 @@ interface ExchangeRatesCache {
   rates: Partial<Record<CurrencyCode, number>>
 }
 
-const CACHE_KEY = 'komari_finance_exchange_rates_cny_v1'
-const OVERRIDES_KEY = 'komari_finance_exchange_rate_overrides_v1'
+const CACHE_KEY = 'glassmorphism_finance_exchange_rates_cny_v1'
+const OVERRIDES_KEY = 'glassmorphism_finance_exchange_rate_overrides_v1'
 const FINANCE_CURRENCY_KEY = 'fin_currency'
 const EXCLUDE_FREE_KEY = 'fin_exclude_free'
 const METERED_SETTINGS_KEY_PREFIX = 'theme:usage-estimator:v1:'

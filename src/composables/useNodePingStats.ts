@@ -61,7 +61,7 @@ interface SharedPingRecordsEntry {
 
 const HISTORY_BUCKET_COUNT = 20
 const CACHE_VERSION = 8
-const CACHE_KEY_PREFIX = 'komari-theme-emerald:node-ping-stats'
+const CACHE_KEY_PREFIX = 'glassmorphism:node-ping-stats'
 const FULL_LOSS_EPSILON = 1e-6
 const PING_RECORD_REFRESH_INTERVAL_MS = 60_000
 const sharedPingRecordsCache = new Map<string, SharedPingRecordsEntry>()

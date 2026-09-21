@@ -4,7 +4,7 @@ import { getSharedRpc } from '@/utils/rpc'
 
 export type VisitorAuditSubmitStatus = 'success' | 'disabled' | 'rate_limited' | 'failed'
 
-const SESSION_STORAGE_KEY = 'komari-theme:visitor-audit-session'
+const SESSION_STORAGE_KEY = 'glassmorphism:visitor-audit-session'
 const VISITOR_AUDIT_TIMEOUT_MS = 4_000
 const DETAIL_JSON_LIMIT = 1_800
 const SENSITIVE_KEY_PATTERN = /authorization|password|passwd|secret|token|clipboard|command|query_value|cookie_value|cookie_header/i
