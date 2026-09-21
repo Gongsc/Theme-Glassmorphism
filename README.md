@@ -4,7 +4,7 @@
 
 将 [sanrokamlan-prog/komari-theme-Glassmorphism](https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism) 原主题移植到 [极简探针 Monitor](https://github.com/monitor-probe/monitor)。基于原版 v3.3.7 的 Vue 源码、组件、样式与资源，使用 Monitor REST / WebSocket 适配层替换 Komari 数据源。LuminaPlus 仅作为本机设置与静态配置的实现参考。
 
-当前主题版本为 1.0.0，保留原项目 MIT 许可和作者署名。
+当前主题版本为 1.0.1，保留原项目 MIT 许可和作者署名。
 
 ## 已保留的原版界面与功能
 
@@ -50,7 +50,7 @@ dist/
 
 `preview.png` 是演示数据下的主题首页截图，后台主题卡片会显示这张图。更新界面后，可启动 `python3 scripts/demo-server.py` 与 `npm run dev`，在 1440×900 视口重新截取首页并替换仓库根目录的 `preview.png`。
 
-主题卡片上的 GitHub 更新使用正式 Release 中名称精确为 `theme.tar.gz` 的附件。将 `theme.json`、`package.json` 和 `package-lock.json` 的版本设为同一个版本号后，推送 `x.x.x` 格式的 tag（例如 `1.0.0`），GitHub Actions 会自动构建主题包并创建 Release。其他格式的 tag 不会发布成功。
+主题卡片上的 GitHub 更新使用正式 Release 中名称精确为 `theme.tar.gz` 的附件。将 `theme.json`、`package.json` 和 `package-lock.json` 的版本设为同一个版本号后，推送 `x.x.x` 格式的 tag（例如 `1.0.1`），GitHub Actions 会自动构建主题包并创建 Release。其他格式的 tag 不会发布成功。
 
 ## 开发
 
