@@ -1,44 +1,54 @@
-# Glassmorphism · 极简探针主题
+# Glassmorphism for 极简探针
 
-为 [极简探针 monitor](https://github.com/monitor-probe/monitor) 制作的玻璃拟态主题。视觉参考 [Komari Glassmorphism](https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism)，接口、历史图表和基础组件基于 MIT 许可的 [monitor-theme-default](https://github.com/monitor-probe/monitor-theme-default)。保留原作者版权，见 LICENSE。
+将 [sanrokamlan-prog/komari-theme-Glassmorphism](https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism) 原主题移植到 [极简探针 Monitor](https://github.com/monitor-probe/monitor)。基于原版 v3.3.7 的 Vue 源码、组件、样式与资源，使用 Monitor REST / WebSocket 适配层替换 Komari 数据源。LuminaPlus 仅作为本机设置与静态配置的实现参考。
 
-## 功能
+2.0 取代此前自行设计的 React 界面；保留原项目 MIT 许可和作者署名。
 
-- 柔和渐变背景、毛玻璃卡片、明暗模式（首次跟随系统，手动选择保存在浏览器）。
-- 在线节点、最忙 CPU、今日/累计流量、实时上下行概览。
-- 名称、国家代码、操作系统搜索，在线/离线筛选，卡片与紧凑视图。
-- CPU、内存、磁盘、流量配额、运行时长、到期时间。
-- 独立节点详情页、历史资源和网络延迟图表、窗口丢包率。
-- WebSocket 实时快照、断线重连及 HTTP 轮询回退。
-- 移动端布局、键盘操作、减少动态效果支持。
+## 已保留的原版界面与功能
 
-这是极简探针主题，不能导入 Komari。不包含 Komari 专有的拓扑、费用排行或审计接口。
+- 原版动态渐变背景、翡翠/柔和/高对比/午夜/自定义玻璃配色，浅色/深色/北京时间自动日夜模式。
+- 首页贴图地球、Cobe 点阵地球、平铺世界地图；节点国家标记、自动旋转开关与地球隐藏。
+- 首页概览卡片方案与自定义顺序、公告、快捷筛选、节点收藏。
+- mini / compact / comfortable / large 节点卡片、列表、搜索、离线置底。
+- 原版节点详情、资源负载图、延迟图、费用计算、节点对比及快照等组件。
+- 原主题配置 schema 对应的设置面板，图片/视频背景、布局、数值格式等设置；本机保存、配置导入导出和恢复默认。
 
-## 安装
+## Monitor 接口适配与差异
 
-将 `release/monitor-theme-glassmorphism-1.0.0.tar.gz` 解压到 hub 的 `--themes` 目录：
+`src/monitor/` 是适配层，调用同源 `/api/me`、`/api/nodes`、`/api/nodes/{id}/metrics`、`/api/ws`。不需要 Komari 服务器，也不发送 Komari RPC 请求。
 
-```sh
-tar -xzf monitor-theme-glassmorphism-1.0.0.tar.gz -C /path/to/themes
-```
+- 节点数字 ID 映射为原主题 UUID 字符串；内存/磁盘保留字节单位。
+- 首页和列表配额使用 Monitor 本月上传/下载计数，累计上传/下载保留生命周期总计。
+- 后端未公开 IP，因此地球按国家中心坐标定位，不宣称机房/城市精确位置。不向第三方发送节点 IP。
+- 原版 GPU、节点分组/自定义标签、ASN/BGP、审计日志等依赖额外后端数据。Monitor 未提供的字段不可获得；审计工具入口已移除，拓扑仅能利用公开节点元数据，GPU 数据不代表真实上报。
+- 历史接口提供 CPU、内存、磁盘、上下行速率、Ping。未提供的历史字段保留为空值，不以累计计数或当前值伪造历史曲线。实时连接数、交换内存等仍使用节点实时快照。
+- Ping 摘要使用响应中的窗口丢包率，详情任务使用后端 `loss`。短条历史采用对应返回桶的丢包信息；不将其平均当作整个窗口丢包率。
+- 访客信息查询默认关闭；用户开启后使用原主题的第三方访客 IP 查询。原主题汇率、图标加载也保留外部服务依赖。
+- 私有高级工具仍以 `/api/me` 登录状态校验；极简探针后台由 `/admin/` 接管，安装包不携带 Komari 后台。
 
-目录结构必须是：
+## 安装 / 手动更新
+
+后台「主题」→「上传主题包」，选择 `release/theme.tar.gz`。相同 `short=glassmorphism` 会替换已有主题；首次安装后选择启用。
+
+包根目录直接包含：
 
 ```text
-/path/to/themes/glassmorphism/
-  theme.json
-  LICENSE
-  dist/
-    index.html
-    assets/
+theme.json
+LICENSE
+dist/
+  index.html
+  glass-config.json
+  assets/
+  images/
 ```
 
-进入极简探针后台「主题」页，切换到 **Glassmorphism · 玻璃拟态**，无需重启。
-如果后台有上传功能，请以该版本后台要求为准；此包提供默认主题 README 约定的目录安装结构。
+也可手动解压到 `<themes-dir>/glassmorphism/`。
 
-## 开发和打包
+主题卡片上的 GitHub 更新需要在本仓库发布正式 Release，并上传名称精确为 `theme.tar.gz` 的附件。仅推送源码不会形成在线更新；Release 标签去掉 `v` 后应与 `theme.json` 的版本一致。
 
-需要 Node.js 24+、npm、系统 tar。
+## 开发
+
+Node.js 24+，npm：
 
 ```sh
 npm ci
@@ -49,16 +59,14 @@ npm test
 npm run package
 ```
 
-开发地址为 `http://127.0.0.1:5173`，`/api` 和 WebSocket 代理到 `http://127.0.0.1:9911`。生产部署由 hub 提供同源 API，不需要运行 Vite。`npm run package` 生成带目录的 tar.gz 和 SHA-256 校验文件。
+`/api` 默认代理到 `127.0.0.1:9911`。没有真实 hub 时，可另开终端运行 `python3 scripts/demo-server.py`；它提供标记为演示的数据和历史，WebSocket 不可用时回退轮询。生产安装包不包含演示接口。
 
-没有 hub 时，可在另一个终端运行 `python3 scripts/demo-server.py`。该脚本仅监听本机 9911，提供明确标注为「演示」的 6 个节点与历史图，用于 UI 预览；不实现 WebSocket，主题将自动回退为轮询。连接真实 hub 前停止该脚本。演示代码不会进入 dist 或安装包。
+## 配置
 
-## 接口契约
+顶部「主题设置」使用原主题 `src/theme-schema.json` 字段，修改保存在当前浏览器。站点默认值位于 `public/glass-config.json`，打包后为 `dist/glass-config.json`。
 
-沿用默认主题的 `GET /api/me`、`GET /api/nodes`、`GET /api/nodes/{id}/metrics` 和 `GET /api/ws`。历史查询保留 `hours`、`points`、`series` 参数。丢包率使用后端窗口 `loss`，不对桶百分比取平均。
+统一站点配置：导出 JSON → 替换 `public/glass-config.json` → 重新打包上传。已有本机设置的浏览器需点击「恢复默认」。Monitor 不提供原主题管理设置 API，因此没有后端保存按钮。原 Komari RPC 传输选择不适用于此移植版。
 
-未登录且关闭公开页面时跳转 `/admin/`。主题不接管后台，不读取私有管理接口。反代/WAF 需要允许 `/node/{id}`，支持详情页直接刷新。
+## 验证
 
-## 验证范围
-
-构建、oxlint、格式化与实时指标异常输入测试；使用演示接口检查搜索、筛选、节点详情、明暗主题及窄屏布局。尚未连接用户的真实 hub 实例进行部署验收。
+执行 Vue/TypeScript 检查、生产构建、适配层 lint 与字段映射回归测试。浏览器使用演示接口验证地球/地图及设置。尚未连接用户真实 hub 部署验收，不能据此宣称所有高级工具已完成生产验证。
