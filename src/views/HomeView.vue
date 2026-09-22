@@ -25,6 +25,7 @@ import {
   isHighLoadNode,
 } from '@/utils/nodeMetricsHelper'
 import { isNodeMatchSearch } from '@/utils/nodeSearch'
+import { getRegionCode, getRegionDisplayName } from '@/utils/regionHelper'
 import { isFreeNode } from '@/utils/tagHelper'
 
 interface QuickControlOption {
@@ -82,8 +83,12 @@ onDeactivated(() => {
 
 const searchText = ref('')
 const debouncedSearchText = ref('')
+const searchFocused = ref(false)
+const searchExpanded = computed(() => searchFocused.value || Boolean(searchText.value))
+const selectedRegion = ref('all')
 const activeHomeTool = ref<HomeToolKey>('nodes')
 const activeQuickControl = ref<HomeQuickControlKey | null>(null)
+const hasSecondaryFilter = computed(() => activeQuickControl.value !== null || selectedRegion.value !== 'all' || Boolean(searchText.value.trim()))
 const exchangeRates = ref(financeHelper.DEFAULT_EXCHANGE_RATES)
 const excludeFreeNodes = ref(true)
 const pingDialogNode = ref<NodeData | null>(null)
@@ -253,8 +258,36 @@ const groupNodeList = computed(() => {
   return nodesStore.visibleNodes.filter(node => node.groups.includes(selectedGroup))
 })
 
+const regionOptions = computed(() => {
+  const regions = new Map<string, { label: string, count: number }>()
+  for (const node of groupNodeList.value) {
+    const region = node.region.trim()
+    if (!region)
+      continue
+    const code = getRegionCode(region).toUpperCase()
+    const existing = regions.get(code)
+    if (existing) {
+      existing.count++
+    }
+    else {
+      regions.set(code, { label: getRegionDisplayName(region) || code, count: 1 })
+    }
+  }
+  return [...regions].map(([value, details]) => ({ value, ...details }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'zh-CN'))
+})
+
+watch(regionOptions, (options) => {
+  if (selectedRegion.value !== 'all' && !options.some(option => option.value === selectedRegion.value))
+    selectedRegion.value = 'all'
+})
+
+const regionNodeList = computed(() => selectedRegion.value === 'all'
+  ? groupNodeList.value
+  : groupNodeList.value.filter(node => getRegionCode(node.region.trim()).toUpperCase() === selectedRegion.value))
+
 const nodeList = computed(() => {
-  let filtered = groupNodeList.value
+  let filtered = regionNodeList.value
   if (debouncedSearchText.value.trim()) {
     filtered = filtered.filter(n => isNodeMatchSearch(n, debouncedSearchText.value))
   }
@@ -268,7 +301,7 @@ const deferNodeCards = computed(() => appStore.nodeViewMode === 'card' && nodeLi
 const deferredNodeCardHeight = computed(() => ({ mini: 220, compact: 270, comfortable: 310, large: 350 }[appStore.nodeCardSize]))
 
 const quickControlCounts = computed<Record<HomeQuickControlKey, number>>(() => {
-  let base = groupNodeList.value
+  let base = regionNodeList.value
   if (debouncedSearchText.value.trim())
     base = base.filter(n => isNodeMatchSearch(n, debouncedSearchText.value))
 
@@ -281,6 +314,8 @@ const quickControlCounts = computed<Record<HomeQuickControlKey, number>>(() => {
 const emptyDescription = computed(() => {
   if (debouncedSearchText.value.trim())
     return '没有匹配的节点'
+  if (selectedRegion.value !== 'all')
+    return '当前区域暂无节点'
   if (activeQuickControl.value)
     return '当前快捷筛选下暂无节点'
   return '暂无节点'
@@ -291,8 +326,19 @@ function clearSearch() {
   debouncedSearchText.value = ''
 }
 
+function resetNodeFilters() {
+  activeQuickControl.value = null
+  selectedRegion.value = 'all'
+  clearSearch()
+}
+
+function expandSearch() {
+  searchFocused.value = true
+  appStore.homeAdvancedToolsVisible = false
+}
+
 const nodeListSortResetKey = computed(() => {
-  return `${appStore.nodeSelectedGroup}|${debouncedSearchText.value.trim()}|${activeQuickControl.value ?? 'all'}`
+  return `${appStore.nodeSelectedGroup}|${selectedRegion.value}|${debouncedSearchText.value.trim()}|${activeQuickControl.value ?? 'all'}`
 })
 
 function handleNodeClick(node: NodeData) {
@@ -304,7 +350,7 @@ function openPingDialog(node: NodeData) {
 }
 
 function getNodeItemTransitionKey(node: NodeData): string {
-  return `${appStore.nodeSelectedGroup}-${activeQuickControl.value ?? 'all'}-${node.uuid}`
+  return `${appStore.nodeSelectedGroup}-${selectedRegion.value}-${activeQuickControl.value ?? 'all'}-${node.uuid}`
 }
 
 function getNodeItemTransitionStyle(index: number): Record<string, string> {
@@ -446,8 +492,11 @@ const nodeCardGridClass = computed(() => {
                 <TabsList class="w-max h-8 bg-background/50 backdrop-blur-xl rounded-md pointer-events-auto">
                   <TabsTrigger
                     v-for="g in groups" :key="g.name" :value="g.name"
-                    @click="g.name === 'all' && (activeQuickControl = null)"
-                    class="h-6.5 flex-none shrink-0 text-xs border-none data-[state=active]:text-selection shadow-none rounded-sm"
+                    @click="g.name === 'all' && resetNodeFilters()"
+                    class="h-6.5 flex-none shrink-0 text-xs border-none shadow-none rounded-sm"
+                    :class="g.name === 'all' && hasSecondaryFilter
+                      ? 'data-active:!bg-transparent dark:data-active:!bg-transparent data-active:!text-foreground/60 dark:data-active:!text-muted-foreground data-active:!shadow-none'
+                      : 'data-active:text-selection'"
                   >
                     {{ g.tab }}
                   </TabsTrigger>
@@ -475,7 +524,7 @@ const nodeCardGridClass = computed(() => {
                 </div>
               </div>
             </div>
-            <div class="search flex min-w-0 flex-wrap gap-2 items-center justify-end pointer-events-auto max-sm:justify-start xl:ml-auto">
+            <div class="search flex max-w-full min-w-0 flex-wrap gap-2 items-center justify-end pointer-events-auto xl:ml-auto">
               <div v-if="homeTools.length && appStore.homeAdvancedToolsVisible" class="flex h-8 items-center gap-1 rounded-md bg-background/50 p-0.5 backdrop-blur-xs">
                 <Button
                   v-for="tool in homeTools" :key="tool.key"
@@ -489,6 +538,20 @@ const nodeCardGridClass = computed(() => {
                 >
                   <Icon :icon="tool.icon" :width="14" :height="14" />
                 </Button>
+              </div>
+
+              <div class="relative h-8 shrink-0">
+                <Icon icon="tabler:map-pin" :width="14" :height="14" class="pointer-events-none absolute left-2 top-1/2 z-1 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <select
+                  v-model="selectedRegion"
+                  aria-label="按区域筛选节点"
+                  class="h-8 w-32 rounded-md border-none bg-background/50 pl-7 pr-1 text-xs text-foreground shadow-none backdrop-blur-xs outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-36"
+                >
+                  <option value="all">全部区域</option>
+                  <option v-for="region in regionOptions" :key="region.value" :value="region.value">
+                    {{ region.label }} ({{ region.count }})
+                  </option>
+                </select>
               </div>
 
               <Button
@@ -507,13 +570,18 @@ const nodeCardGridClass = computed(() => {
               >
                 <Icon icon="tabler:table" :width="14" :height="14" />
               </Button>
-              <div class="relative z-1 h-8" :class="searchText ? 'w-full sm:w-60' : 'w-8'">
-                <div class="absolute top-0 right-0 w-full">
+              <div
+                class="relative z-10 h-8 max-w-[calc(100vw-2rem)] shrink-0 transition-[width] duration-200"
+                :class="searchExpanded ? 'w-60' : 'w-8'"
+              >
+                <div class="relative h-full w-full">
                   <Input
                     v-model="searchText" placeholder="搜索名称、地区、IP、CPU"
                     aria-label="搜索节点"
-                    class="transition-all border-none shadow-none h-8 bg-background/50 backdrop-blur-xs rounded-md hover:!bg-background/60 focus:!pl-7.5 focus:placeholder:!text-muted-foreground focus:!bg-background/80 focus:!ring-slate-500/10"
-                    :class="searchText ? '!w-full sm:!w-60 !pl-7.5 pr-7 placeholder:!text-muted-foreground' : 'w-8 placeholder:text-transparent focus:!w-52 sm:focus:!w-60'"
+                    class="w-full border-none shadow-none h-8 bg-background/50 backdrop-blur-xs rounded-md hover:!bg-background/60 focus:!pl-7.5 focus:placeholder:!text-muted-foreground focus:!bg-background/80 focus:!ring-slate-500/10"
+                    :class="searchText ? '!pl-7.5 pr-7 placeholder:!text-muted-foreground' : 'placeholder:text-transparent'"
+                    @focus="expandSearch"
+                    @blur="searchFocused = false"
                     @keydown.esc.prevent="clearSearch"
                   />
                   <Icon

@@ -4,7 +4,7 @@
 
 将 [sanrokamlan-prog/komari-theme-Glassmorphism](https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism) 原主题移植到 [极简探针 Monitor](https://github.com/monitor-probe/monitor)。基于原版 v3.3.7 的 Vue 源码、组件、样式与资源，使用 Monitor REST / WebSocket 适配层替换 Komari 数据源。LuminaPlus 仅作为本机设置与静态配置的实现参考。
 
-当前主题版本为 1.0.1，保留原项目 MIT 许可和作者署名。
+当前主题版本为 1.0.2，保留原项目 MIT 许可和作者署名。
 
 ## 已保留的原版界面与功能
 
@@ -26,7 +26,7 @@
 - 原版 GPU、节点分组/自定义标签、ASN/BGP、审计日志等依赖额外后端数据。Monitor 未提供的字段不可获得；审计工具入口已移除，拓扑仅能利用公开节点元数据，GPU 数据不代表真实上报。
 - 历史接口提供 CPU、内存、磁盘、上下行速率、Ping。未提供的历史字段保留为空值，不以累计计数或当前值伪造历史曲线。实时连接数、交换内存等仍使用节点实时快照。
 - Ping 摘要使用响应中的窗口丢包率，详情任务使用后端 `loss`。短条历史采用对应返回桶的丢包信息；不将其平均当作整个窗口丢包率。
-- 访客信息查询默认关闭；用户开启后使用原主题的第三方访客 IP 查询。原主题汇率、图标加载也保留外部服务依赖。
+- 访客信息查询默认开启，使用原主题的第三方访客 IP 查询；可在主题设置中关闭。原主题汇率、图标加载也保留外部服务依赖。
 - 私有高级工具仍以 `/api/me` 登录状态校验；极简探针后台由 `/admin/` 接管，安装包不携带 Komari 后台。
 
 ## 安装 / 手动更新
@@ -48,9 +48,9 @@ dist/
 
 也可手动解压到 `<themes-dir>/glassmorphism/`。
 
-`preview.png` 是演示数据下的主题首页截图，后台主题卡片会显示这张图。更新界面后，可启动 `python3 scripts/demo-server.py` 与 `npm run dev`，在 1440×900 视口重新截取首页并替换仓库根目录的 `preview.png`。
+`preview.png` 是使用演示节点和示例访客 IP 截取的 1440×900 首页图，后台主题卡片会显示这张图。更新界面后，可启动 `python3 scripts/demo-server.py` 与 `npm run dev` 重新截取，并替换仓库根目录的 `preview.png`。截图时请勿记录真实访客 IP。
 
-主题卡片上的 GitHub 更新使用正式 Release 中名称精确为 `theme.tar.gz` 的附件。将 `theme.json`、`package.json` 和 `package-lock.json` 的版本设为同一个版本号后，推送 `x.x.x` 格式的 tag（例如 `1.0.1`），GitHub Actions 会自动构建主题包并创建 Release。其他格式的 tag 不会发布成功。
+主题卡片上的 GitHub 更新使用正式 Release 中名称精确为 `theme.tar.gz` 的附件。将 `theme.json`、`package.json` 和 `package-lock.json` 的版本设为同一个版本号后，推送 `x.x.x` 格式的 tag（例如 `1.0.2`），GitHub Actions 会自动构建主题包并创建 Release。其他格式的 tag 不会发布成功。
 
 ## 开发
 

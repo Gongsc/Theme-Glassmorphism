@@ -184,6 +184,8 @@ const remainingInfoTags = computed<RemainingInfoTag[]>(() => {
 })
 
 const customTags = computed(() => parseTags(props.node.tags).map(t => t.text))
+const nodeRemark = computed(() => (props.node.remark || props.node.public_remark || '').trim())
+const remarkTags = computed(() => nodeRemark.value.split(/[;；]/).map(part => part.trim()).filter(Boolean))
 
 function getRegionAltText(region: string): string {
   return getRegionDisplayName(region) || getRegionCode(region)
@@ -520,6 +522,20 @@ function hasRegion(region: string | null | undefined): boolean {
           >
             {{ tag }}
           </Badge>
+        </div>
+
+        <!-- 备注置于卡片底部；分号分隔时显示多个标签 -->
+        <div v-if="nodeRemark" class="relative z-20 min-w-0 text-[11px] text-muted-foreground">
+          <div class="flex flex-wrap gap-1" aria-label="节点备注">
+            <Badge
+              v-for="(tag, i) in remarkTags" :key="i"
+              variant="outline"
+              class="max-w-full !text-[11px] rounded-full border-muted-foreground/15 px-2 py-0"
+              :title="tag"
+            >
+              <span class="truncate">{{ tag }}</span>
+            </Badge>
+          </div>
         </div>
 
         <!-- 离线遮罩 -->

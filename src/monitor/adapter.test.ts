@@ -20,6 +20,8 @@ const offline = mapNode({...node,online:false})
 assert.equal(offline.status.online,false); assert.equal(offline.status.net_in,0)
 assert.equal(offline.status.net_total_down,1800)
 assert.equal(mapNode({...node,billing_cycle:'once'}).client.billing_cycle,-1)
+assert.equal(mapNode({...node,remark:'主节点；高带宽'}).client.remark,'主节点；高带宽')
+assert.equal(mapNode({...node,public_remark:'公开节点'}).client.public_remark,'公开节点')
 assert.equal('ipv4' in client,false)
 console.log('Monitor mapping: identity, billing, live metrics, offline state, monthly/total traffic and public metadata passed')
 

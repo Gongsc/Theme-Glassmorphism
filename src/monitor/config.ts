@@ -1,8 +1,6 @@
 import schema from '../theme-schema.json'
 export const configFields = schema.configuration.data.filter(f => !['rpcTransportMode', 'exportSecondaryPassword'].includes(f.key ?? ''))
 export const defaultConfig: Record<string, unknown> = Object.fromEntries(configFields.filter(f => f.key).map(f => [f.key!, f.default]))
-// Monitor does not expose GPU metrics, visitor IP, or audit endpoints.
-defaultConfig.visitorInfoEnabled = false
 export const CONFIG_KEY = 'monitor:glassmorphism:original:v2'
 let siteConfig: Record<string, unknown> = { ...defaultConfig }
 export function sanitizeConfig(input: unknown) {

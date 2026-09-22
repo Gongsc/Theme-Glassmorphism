@@ -57,5 +57,5 @@ export type Node = {
   hostname?: string
   ip?: string
   remark?: string
+  public_remark?: string
 }
-

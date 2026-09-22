@@ -2,7 +2,7 @@
   "name": "Glassmorphism",
   "short": "Glassmorphism",
   "description": "A glassmorphism theme for Monitor",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "sanrokamlan",
   "url": "https://github.com/Gongsc/Theme-Glassmorphism",
   "preview": "preview.png",
@@ -89,7 +89,7 @@
         "key": "earthRenderer",
         "name": "地球样式",
         "type": "select",
-        "default": "realistic",
+        "default": "cobe",
         "options": "realistic,cobe,tiled",
         "help": "realistic=贴图，cobe=点阵，tiled=平铺地图。"
       },
@@ -118,7 +118,7 @@
         "key": "glassColorPreset",
         "name": "毛玻璃配色方案",
         "type": "select",
-        "default": "翡翠",
+        "default": "柔和",
         "options": "翡翠,柔和,高对比,午夜,自定义",
         "help": "选择“自定义”后读取下方 JSON。"
       },
@@ -145,7 +145,7 @@
         "key": "generalCardPreset",
         "name": "头部卡片方案",
         "type": "select",
-        "default": "基础",
+        "default": "官方",
         "options": "官方,基础,运维,资源,财务,流量,GPU,资产,完整,自定义",
         "help": "完整=展示全部可用卡片；自定义时读取下方 keys，顺序就是显示顺序。"
       },
@@ -306,7 +306,7 @@
         "key": "detailMetricCardPreset",
         "name": "详情概览卡片方案",
         "type": "select",
-        "default": "财务",
+        "default": "综合",
         "options": "财务,状态,资源,网络,GPU,综合,自定义",
         "help": "宽屏每行 4 张，中屏 3 张，移动端 2 张。财务/状态/网络/GPU=8 张；资源=12 张；综合=16 张；自定义读取下方 keys。"
       },
@@ -351,14 +351,14 @@
         "key": "backgroundEnabled",
         "name": "启用自定义背景",
         "type": "switch",
-        "default": false,
-        "help": "启用后可设置自定义图片或视频作为页面背景"
+        "default": true,
+        "help": "启用后可设置自定义图片、视频或 Bing 每日壁纸作为页面背景"
       },
       {
         "key": "backgroundType",
         "name": "背景类型",
         "type": "select",
-        "default": "image",
+        "default": "bing",
         "options": "image,video,bing",
         "help": "image=自定义图片；video=自定义视频；bing=Bing 每日壁纸（中国区，亮色和暗色模式共用）。"
       },
@@ -380,7 +380,7 @@
         "key": "backgroundBlur",
         "name": "背景模糊半径",
         "type": "number",
-        "default": 0,
+        "default": 30,
         "help": "背景的高斯模糊半径（单位：px），0 表示不模糊"
       },
       {
@@ -405,7 +405,7 @@
         "key": "homepageMultiPingTaskIds",
         "name": "首页探测线路名称或 ID",
         "type": "string",
-        "default": "",
+        "default": "浙江电信,浙江移动,浙江联通",
         "help": "按显示顺序填写后台延迟监控的完整名称，例如：浙江电信,浙江联通,浙江移动。使用逗号分隔，名称须完全一致；也兼容任务 ID。留空自动显示可用线路；未匹配、未绑定或无采样显示空白。同名任务会全部匹配。"
       },
       {
