@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict'
+import { buildSparklineGeometry, robustDomain, sparklineIndexAt, sparklinePointPercent } from './sparkline.ts'
+
+assert.deepEqual(buildSparklineGeometry([null, null]).linePaths, [])
+assert.deepEqual(robustDomain([]), { min: 0, max: 1 })
+const flat = robustDomain([50, 50, 50])
+assert.ok(flat.min < 50 && flat.max > 50)
+// 单个 900 ms 尖峰不应把 40–60 ms 的正常波动压平。
+const spiky = robustDomain([...Array.from({ length: 19 }, (_, i) => 40 + i), 900])
+assert.ok(spiky.max < 300, `spike should be capped, got ${spiky.max}`)
+assert.equal(robustDomain([40, 60]).max > 60, true)
+console.log('Sparkline domain: empty, flat and spike capping passed')
+
+const split = buildSparklineGeometry([10, 20, null, null, 30, 40, 50])
+assert.equal(split.linePaths.length, 2)
+assert.equal(split.fillPaths.length, 2)
+assert.ok(split.linePaths[0]!.startsWith('M 0.00 '))
+assert.match(split.linePaths[1]!, / 120\.00 [\d.]+$/)
+const lone = buildSparklineGeometry([null, 20, null], 100)
+assert.equal(lone.linePaths.length, 1)
+assert.ok(lone.linePaths[0]!.startsWith('M 46.00 '))
+for (const path of [...split.linePaths, ...split.fillPaths, ...lone.linePaths])
+  assert.ok(!/NaN|Infinity/.test(path), path)
+console.log('Sparkline geometry: gaps split segments, isolated points stay visible, no NaN passed')
+
+assert.equal(sparklinePointPercent(0, 20), 0)
+assert.equal(sparklinePointPercent(19, 20), 100)
+assert.equal(sparklinePointPercent(0, 1), 50)
+assert.equal(sparklineIndexAt(0, 20), 0)
+assert.equal(sparklineIndexAt(1, 20), 19)
+assert.equal(sparklineIndexAt(-0.3, 20), 0)
+assert.equal(sparklineIndexAt(1.4, 20), 19)
+assert.equal(sparklineIndexAt(0.5, 20), 10)
+for (let i = 0; i < 20; i++)
+  assert.equal(sparklineIndexAt(sparklinePointPercent(i, 20) / 100, 20), i)
+console.log('Sparkline inspect: pointer ratio and marker position round-trip passed')

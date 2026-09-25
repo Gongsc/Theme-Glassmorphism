@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { CardX } from '@/components/ui/card-x'
 import { DataTooltip } from '@/components/ui/data-tooltip'
 import { ProgressThin } from '@/components/ui/progress-thin'
+import { PingSparkline } from '@/components/ui/sparkline'
 import NodeMultiPing from '@/components/NodeMultiPing.vue'
 import { useNodePingDisplay } from '@/composables/useNodePingDisplay'
+import { pingColor } from '@/monitor/pingRows'
 import { useAppStore } from '@/stores/app'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, getStatus, getUptimeDays } from '@/utils/helper'
 import { getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
@@ -57,6 +59,7 @@ const NODE_METRIC_ICONS = {
   traffic: 'tabler:arrows-transfer-up-down',
 } as const
 
+const pingSparkline = computed(() => appStore.publicSettings?.theme_settings?.nodeCardPingStyle === 'sparkline')
 const multiPing = computed(() => appStore.publicSettings?.theme_settings?.homepageMultiPing !== false && appStore.nodeCardSize !== 'mini')
 const isMiniNodeCard = computed(() => appStore.nodeCardSize === 'mini')
 const nodeCardXSize = computed(() => appStore.nodeCardSize === 'large' ? 'large' : 'medium')
@@ -87,11 +90,17 @@ const diskStatus = computed(() => getStatus(diskPercentage.value))
 const {
   latencyRenderBars,
   lossRenderBars,
+  latencyPoints,
+  periodTips,
+  pingStats,
   latencyDisplay,
   lossDisplay,
   latencyPanelTooltip,
   lossPanelTooltip,
 } = useNodePingDisplay(() => props.node.uuid, { enabled: () => props.pingEnabled && !multiPing.value })
+
+const latencyColor = computed(() => pingColor(pingStats.hasData.value ? pingStats.avgLatency.value : null, 'latency'))
+const lossColor = computed(() => pingColor(pingStats.hasData.value ? pingStats.avgLoss.value : null, 'loss'))
 
 const trafficUsedPercentage = computed(() => getTrafficUsedPercentage(props.node))
 const trafficUsed = computed(() => getTrafficUsed(props.node))
@@ -265,11 +274,25 @@ function hasRegion(region: string | null | undefined): boolean {
     </template>
 
     <template #default>
-      <div class="flex flex-col relative" :class="nodeCardContentClass">
-        <!-- 在线天数固定展示，价格独立展示，避免不同主机卡片高度不一致 -->
-        <div class="relative z-20 flex items-center gap-1.5 -mt-1 h-[19px] overflow-hidden">
-          <span class="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-slate-500/10 text-muted-foreground leading-tight">
+      <div
+        data-node-card-content
+        class="flex flex-col relative"
+        :class="[nodeCardContentClass, !props.node.online && 'node-card-content--offline']"
+      >
+        <!-- 在线天数固定展示，价格独立展示，避免不同主机卡片高度不一致；离线时在线天数换成离线标记 -->
+        <div class="node-card-status-row relative z-20 flex items-center gap-1.5 -mt-1 h-[19px] overflow-hidden">
+          <span
+            v-if="props.node.online"
+            class="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-slate-500/10 text-muted-foreground leading-tight"
+          >
             {{ uptimeDaysText }}
+          </span>
+          <span
+            v-else
+            class="inline-flex shrink-0 items-center gap-1 rounded-full border border-destructive/20 bg-destructive/10 px-2 py-0.5 text-[11px] leading-tight text-destructive"
+          >
+            <Icon icon="tabler:cloud-off" width="11" height="11" aria-hidden="true" />
+            离线
           </span>
           <span
             v-if="priceText"
@@ -456,11 +479,28 @@ function hasRegion(region: string | null | undefined): boolean {
 
         <!-- 原版单线路摘要与多线路监测共用详情入口 -->
         <NodeMultiPing v-if="multiPing" :uuid="node.uuid" :name="node.name" :enabled="Boolean(props.pingEnabled)" @open="emit('pingClick')" />
+        <button
+          v-else-if="pingSparkline"
+          type="button"
+          data-node-ping-sparkline
+          class="node-ping-sparkline rounded-lg bg-slate-500/5"
+          :class="[nodeCardPingPanelClass, nodeCardPanelClass]"
+          :aria-label="`${props.node.name} 延迟与丢包监测`"
+          @click.stop="emit('pingClick')"
+        >
+          <span class="text-muted-foreground">延迟</span>
+          <strong :title="latencyPanelTooltip" :style="{ '--ping-value-color': latencyColor }">{{ latencyDisplay }}</strong>
+          <PingSparkline :values="latencyPoints" :tips="periodTips" :color="latencyColor" />
+          <span class="whitespace-nowrap" :title="lossPanelTooltip">
+            <span class="text-muted-foreground">丢包 </span>
+            <strong :style="{ '--ping-value-color': lossColor }">{{ lossDisplay }}</strong>
+          </span>
+        </button>
         <div v-else class="grid grid-cols-2 gap-1.5">
           <button
             type="button"
             class="group/panel relative flex flex-col rounded-lg bg-slate-500/5"
-            :class="[nodeCardPingPanelClass, nodeCardPanelClass, !props.node.online ? 'blur-xs opacity-50' : '']"
+            :class="[nodeCardPingPanelClass, nodeCardPanelClass]"
             :title="latencyPanelTooltip"
             :aria-label="`${props.node.name} 延迟监测`"
             @click.stop="emit('pingClick')"
@@ -489,7 +529,7 @@ function hasRegion(region: string | null | undefined): boolean {
           <button
             type="button"
             class="group/panel relative flex flex-col rounded-lg bg-slate-500/5"
-            :class="[nodeCardPingPanelClass, nodeCardPanelClass, !props.node.online ? 'blur-xs opacity-50' : '']"
+            :class="[nodeCardPingPanelClass, nodeCardPanelClass]"
             :title="lossPanelTooltip"
             :aria-label="`${props.node.name} 丢包监测`"
             @click.stop="emit('pingClick')"
@@ -541,15 +581,16 @@ function hasRegion(region: string | null | undefined): boolean {
           </div>
         </div>
 
-        <!-- 离线遮罩 -->
+        <!-- 离线状态：内容降低透明度，不再模糊遮罩，便于仍能看清最后一次数据 -->
         <div
           v-if="!props.node.online"
-          class="absolute inset-0 flex flex-col items-center justify-center z-10 rounded-xl bg-white/20 dark:bg-black/20 backdrop-blur-[2px]"
+          data-offline-status
+          class="node-card-offline-status pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center"
         >
           <div class="text-sm font-semibold text-destructive">
             离线
           </div>
-          <div class="text-[11px] text-muted-foreground mt-1">
+          <div class="mt-1 text-[11px] text-muted-foreground">
             {{ offlineTime }}
           </div>
         </div>
@@ -562,5 +603,28 @@ function hasRegion(region: string | null | undefined): boolean {
 .node-card {
   position: relative;
   overflow: hidden;
+}
+
+.node-ping-sparkline {
+  display: grid;
+  grid-template-columns: max-content max-content minmax(3rem, 1fr) max-content;
+  align-items: center;
+  column-gap: 6px;
+  width: 100%;
+  font-size: 11px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.node-ping-sparkline strong {
+  color: color-mix(in srgb, var(--ping-value-color) 65%, var(--foreground));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.node-card-content--offline > :not(.node-card-status-row):not(.node-card-offline-status) {
+  opacity: 0.42;
+  filter: saturate(0.55);
 }
 </style>

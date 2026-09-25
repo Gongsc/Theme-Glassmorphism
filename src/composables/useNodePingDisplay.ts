@@ -121,6 +121,12 @@ export function useNodePingDisplay(
   const latencyRenderBars = computed(() => latencyBars.value.length ? latencyBars.value : buildEmptyPingBars('latency'))
   const lossRenderBars = computed(() => lossBars.value.length ? lossBars.value : buildEmptyPingBars('loss'))
 
+  // 延迟曲线样式：与方柱同一组历史点，null 处曲线断开。
+  const latencyPoints = computed(() => pingStats.history.value.map(point => point.latency))
+  const periodTips = computed(() => pingStats.history.value.map(point =>
+    `${formatDateTime(point.time, 'HH:mm:ss')}\n${point.latency === null ? '无采样数据' : `${Math.round(point.latency)} ms`} · ${point.loss === null ? '无丢包数据' : `丢包 ${point.loss.toFixed(1)}%`}`,
+  ))
+
   const latencyDisplay = computed(() => {
     if (pingStats.hasData.value)
       return `${Math.round(pingStats.avgLatency.value)} ms`
@@ -165,6 +171,8 @@ export function useNodePingDisplay(
     pingStatsHours,
     latencyRenderBars,
     lossRenderBars,
+    latencyPoints,
+    periodTips,
     latencyDisplay,
     lossDisplay,
     latencyPanelTooltip,

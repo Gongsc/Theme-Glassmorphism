@@ -313,6 +313,23 @@
       "label": "05 · 节点卡片、列表与快捷控制"
     },
     {
+      "key": "nodeCardPingStyle",
+      "type": "select",
+      "default": "bars",
+      "options": [
+        {
+          "value": "bars",
+          "label": "旧样式（延迟 / 丢包方柱）"
+        },
+        {
+          "value": "sparkline",
+          "label": "延迟曲线（Sparkline）"
+        }
+      ],
+      "help": "节点卡片上延迟与丢包的显示方式，多线路和单线路摘要都生效；列表视图不受影响。延迟曲线下悬停或点按曲线可查看该时段的时间、延迟与丢包，手机上点按后提示停留，点空白处关闭。",
+      "label": "卡片延迟样式"
+    },
+    {
       "key": "homeQuickControlsEnabled",
       "type": "boolean",
       "default": true,
