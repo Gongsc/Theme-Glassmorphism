@@ -15,7 +15,6 @@ export const configFields: ConfigField[] = manifest.config
 const valueFields = configFields.filter((f): f is ConfigField & { key: string } => f.type !== 'title' && Boolean(f.key))
 export const defaultConfig: Record<string, unknown> = Object.fromEntries(valueFields.map(f => [f.key, f.default]))
 const configUrl = `/api/themes/${manifest.short}/config`
-const LEGACY_CONFIG_KEY = 'monitor:glassmorphism:original:v2'
 let siteConfig = { ...defaultConfig }
 
 function configObject(input: unknown): Record<string, unknown> {
@@ -98,13 +97,6 @@ export async function saveConfig(values: Record<string, unknown>): Promise<Recor
   await configRequest({ method: 'PUT', headers: { 'content-type': 'application/json' }, body })
   siteConfig = mergeConfig(values)
   return getSiteConfig()
-}
-
-// Explicit import only: legacy local settings must never override public site settings.
-export function readLegacyBrowserConfig(): Record<string, unknown> {
-  const raw = localStorage.getItem(LEGACY_CONFIG_KEY)
-  if (!raw) throw new Error('当前浏览器没有旧版主题配置')
-  return sanitizeConfig(JSON.parse(raw))
 }
 
 export function importConfig(input: unknown): Record<string, unknown> {

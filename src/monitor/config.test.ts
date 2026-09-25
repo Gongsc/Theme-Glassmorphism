@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { configFields, defaultConfig, fitsConfigField, getSiteConfig, importConfig, loadConfig, readLegacyBrowserConfig, saveConfig } from './config.ts'
+import { configFields, defaultConfig, fitsConfigField, getSiteConfig, importConfig, loadConfig, saveConfig } from './config.ts'
 
 const originalFetch = globalThis.fetch
 const requests: { url: string, init?: RequestInit }[] = []
@@ -76,17 +76,17 @@ try {
   assert.throws(() => importConfig({ homepageMultiPingCount: 0 }))
   assert.equal(importConfig({ alertTitle: '直接对象' }).alertTitle, '直接对象')
 
+  // Old per-browser settings must never override the hub's site settings.
   const storageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => JSON.stringify({ alertTitle: '旧浏览器公告' }) } })
   try {
     saved = { alertTitle: '站点公告' }
     assert.equal((await loadConfig()).alertTitle, '站点公告')
-    assert.equal(readLegacyBrowserConfig().alertTitle, '旧浏览器公告')
   }
   finally {
     if (storageDescriptor) Object.defineProperty(globalThis, 'localStorage', storageDescriptor)
     else Reflect.deleteProperty(globalThis, 'localStorage')
   }
-  console.log('Monitor config: manifest validation, fallback, sparse PUT, unknown keys, failures, byte limit and explicit migration passed')
+  console.log('Monitor config: manifest validation, fallback, sparse PUT, unknown keys, failures, byte limit and file import passed')
 }
 finally { globalThis.fetch = originalFetch }

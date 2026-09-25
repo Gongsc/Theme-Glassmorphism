@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { Icon } from '@iconify/vue'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/stores/app'
-import { ConfigRequestError, configFields, defaultConfig, fitsConfigField, getSiteConfig, importConfig, mergeConfig, readLegacyBrowserConfig, readSavedConfig, saveConfig } from '@/monitor/config'
+import { ConfigRequestError, configFields, defaultConfig, fitsConfigField, getSiteConfig, importConfig, mergeConfig, readSavedConfig, saveConfig } from '@/monitor/config'
 import { message } from '@/utils/message'
 
 const store = useAppStore()
@@ -102,10 +102,6 @@ function stageImport(config: Record<string, unknown>) {
   notice.value = '已导入预览，请检查后点击“保存到站点”。'
   preview()
 }
-function importLegacy() {
-  try { stageImport({ ...defaultConfig, ...readLegacyBrowserConfig() }) }
-  catch (error) { report(error) }
-}
 async function upload(event: Event) {
   const input = event.target as HTMLInputElement
   const selected = input.files?.[0]
@@ -147,7 +143,6 @@ onBeforeUnmount(() => { alive = false; restorePreview() })
         <Button :disabled="busy || !!invalidField || !store.privateFeaturesAllowed" @click="save">{{ busy ? '处理中…' : '保存到站点' }}</Button>
         <Button variant="outline" :disabled="busy" @click="download">导出配置</Button>
         <Button variant="outline" :disabled="busy" @click="file?.click()">导入配置</Button>
-        <Button variant="outline" :disabled="busy" @click="importLegacy">导入旧浏览器配置</Button>
         <Button variant="outline" :disabled="busy" @click="reset">恢复默认</Button>
       </div>
       <input ref="file" type="file" accept=".json" hidden @change="upload">
