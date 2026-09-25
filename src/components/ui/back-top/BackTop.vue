@@ -46,7 +46,8 @@ onUnmounted(() => {
   >
     <button
       v-show="show"
-      class="fixed bottom-16 right-3 z-[60] flex size-9 items-center justify-center rounded-full border bg-background/80 text-foreground shadow-sm backdrop-blur-md transition-colors hover:bg-accent md:bottom-8 md:right-8 md:size-10"
+      data-back-top
+      class="back-top fixed z-[60] flex size-9 items-center justify-center rounded-full border bg-background/80 text-foreground shadow-sm backdrop-blur-md transition-colors hover:bg-accent md:size-10"
       aria-label="返回顶部"
       @click="scrollToTop"
     >
@@ -54,3 +55,21 @@ onUnmounted(() => {
     </button>
   </Transition>
 </template>
+
+<style scoped>
+.back-top {
+  right: calc(0.75rem + env(safe-area-inset-right, 0px));
+  right: calc(0.75rem + var(--komari-safe-area-right, env(safe-area-inset-right, 0px)));
+  bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(4rem + var(--komari-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+}
+
+@media (min-width: 768px) {
+  .back-top {
+    right: calc(2rem + env(safe-area-inset-right, 0px));
+    right: calc(2rem + var(--komari-safe-area-right, env(safe-area-inset-right, 0px)));
+    bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(2rem + var(--komari-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+}
+</style>

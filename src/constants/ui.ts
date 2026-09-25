@@ -10,4 +10,7 @@ export const UI_CONFIG = {
     denseNodeAppearThreshold: 30,
     denseNodePingAnimationThreshold: 60,
   },
+  safeArea: {
+    zoomOutFactorMax: 4,
+  },
 } as const

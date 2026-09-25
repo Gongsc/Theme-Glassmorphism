@@ -93,10 +93,11 @@ const sitename = computed(() => appStore.publicSettings?.sitename || 'Monitor')
   <VisitorInfo v-if="!appStore.loading && appStore.visitorInfoEnabled" />
 
   <div
-    class="transition-all duration-200 top-0 sticky z-10 border-b border-transparent"
+    data-app-header
+    class="app-header transition-all duration-200 top-0 sticky z-10 border-b border-transparent"
     :class="isScrolled ? '!border-slate-500/10 backdrop-blur-lg' : 'bg-transparent'"
   >
-    <div class="px-4 flex-between h-14 max-w-[1280px] mx-auto">
+    <div data-app-header-content class="app-header-content flex-between h-14 max-w-[1280px] mx-auto">
       <div class="flex items-center gap-3 cursor-pointer" @click="router.push('/')">
         <Avatar class="size-8">
           <AvatarImage :src="siteFavicon" :alt="sitename" />
@@ -129,3 +130,17 @@ const sitename = computed(() => appStore.publicSettings?.sitename || 'Monitor')
     </div>
   </div>
 </template>
+
+<style scoped>
+.app-header {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: var(--komari-safe-area-top, env(safe-area-inset-top, 0px));
+}
+
+.app-header-content {
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  padding-right: max(1rem, var(--komari-safe-area-right, env(safe-area-inset-right, 0px)));
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-left: max(1rem, var(--komari-safe-area-left, env(safe-area-inset-left, 0px)));
+}
+</style>

@@ -298,8 +298,9 @@ const siteName = computed(() => appStore.privateFeaturesAllowed ? '尊敬的管�
   <Transition name="slide-up">
     <div
       v-if="show && !dismissed && !mobileScrolling"
-      class="fixed bottom-3 left-1/2 z-50 flex w-max max-w-[calc(100vw-1.5rem)] -translate-x-1/2
-             items-center gap-1.5 rounded-full px-3 py-1.5 md:bottom-4 md:gap-2 md:px-4
+      data-visitor-compact-bar
+      class="visitor-compact-bar fixed left-1/2 z-50 flex w-max -translate-x-1/2
+             items-center gap-1.5 rounded-full px-3 py-1.5 md:gap-2 md:px-4
              bg-white/55 dark:bg-black/50
              backdrop-blur-md
              border border-white/40 dark:border-white/10
@@ -319,7 +320,7 @@ const siteName = computed(() => appStore.privateFeaturesAllowed ? '尊敬的管�
   <Transition name="slide-left">
     <div
       v-if="show && !dismissed"
-      class="fixed bottom-16 left-3 z-50 hidden w-56 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl 2xl:block
+      class="visitor-detail-card fixed z-50 hidden w-56 overflow-hidden rounded-2xl 2xl:block
              bg-white/70 dark:bg-neutral-900/70
              backdrop-blur-xl
              border border-white/40 dark:border-white/10
@@ -386,6 +387,35 @@ const siteName = computed(() => appStore.privateFeaturesAllowed ? '尊敬的管�
 </template>
 
 <style scoped>
+.visitor-compact-bar {
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(0.75rem + var(--komari-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+  max-width: calc(100vw - 1.5rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  max-width: calc(
+    100vw - 1.5rem - var(--komari-safe-area-left, env(safe-area-inset-left, 0px)) -
+      var(--komari-safe-area-right, env(safe-area-inset-right, 0px))
+  );
+}
+
+.visitor-detail-card {
+  bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(4rem + var(--komari-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+  left: calc(0.75rem + env(safe-area-inset-left, 0px));
+  left: calc(0.75rem + var(--komari-safe-area-left, env(safe-area-inset-left, 0px)));
+  max-width: calc(100vw - 1.5rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  max-width: calc(
+    100vw - 1.5rem - var(--komari-safe-area-left, env(safe-area-inset-left, 0px)) -
+      var(--komari-safe-area-right, env(safe-area-inset-right, 0px))
+  );
+}
+
+@media (min-width: 768px) {
+  .visitor-compact-bar {
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(1rem + var(--komari-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+}
+
 .slide-up-enter-active,
 .slide-up-leave-active {
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);

@@ -24,7 +24,7 @@ const formattedServerVersion = computed(() => serverVersion.value?.version ?? ''
 </script>
 
 <template>
-  <footer class="w-full max-w-[1280px] mx-auto p-4">
+  <footer data-app-footer class="app-footer w-full max-w-[1280px] mx-auto p-4">
     <div class="flex w-full flex-row justify-between gap-4 text-xs text-muted-foreground">
       <div class="flex gap-1 items-center">
         Powered by
@@ -59,3 +59,14 @@ const formattedServerVersion = computed(() => serverVersion.value?.version ?? ''
     </div>
   </footer>
 </template>
+
+<style scoped>
+.app-footer {
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  padding-right: max(1rem, var(--komari-safe-area-right, env(safe-area-inset-right, 0px)));
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(1rem + var(--komari-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-left: max(1rem, var(--komari-safe-area-left, env(safe-area-inset-left, 0px)));
+}
+</style>

@@ -4,6 +4,7 @@ import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
+import { useSafeAreaZoom } from '@/composables/useSafeAreaZoom'
 import { useVisitorPageAudit } from '@/composables/useVisitorAudit'
 import { useAppStore } from '@/stores/app'
 import { destroyInitManager, initApp, retryInitApp } from '@/utils/init'
@@ -15,6 +16,7 @@ import Provider from './components/Provider.vue'
 
 const appStore = useAppStore()
 useVisitorPageAudit()
+useSafeAreaZoom()
 
 const isReady = ref(false)
 const isRetryingConnection = ref(false)
@@ -76,7 +78,7 @@ onUnmounted(() => {
       enter-to-class="opacity-100 translate-y-0"
     >
       <div v-if="!appStore.loading" class="app-shell">
-        <main class="min-h-screen overflow-hidden">
+        <main class="app-main overflow-hidden">
           <div v-if="appStore.connectionError" class="relative z-10 mx-auto max-w-[1280px] px-4 pt-4">
             <Alert variant="destructive" class="!pr-28 border-none bg-destructive/10 backdrop-blur-xs rounded-md">
               <Icon icon="tabler:plug-connected-x" />
@@ -113,3 +115,10 @@ onUnmounted(() => {
     <Toaster rich-colors close-button position="top-center" />
   </Provider>
 </template>
+
+<style scoped>
+.app-main {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+</style>
