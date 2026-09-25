@@ -50,6 +50,8 @@ async function open() {
   catch (error) { if (alive) { notice.value = '当前显示已加载的配置，尚未保存。'; report(error) } }
   finally { busy.value = false }
 }
+// 多行文本随内容增高，最多 14 行，其余滚动（如城市匹配规则）。
+const textRows = (value: unknown) => Math.min(14, Math.max(3, String(value ?? '').split('\n').length))
 function update(key: string, value: unknown) {
   if (busy.value || !store.privateFeaturesAllowed) return
   values.value = { ...values.value, [key]: value }
@@ -130,7 +132,7 @@ onBeforeUnmount(() => { alive = false; restorePreview() })
           <input v-if="field.type === 'boolean'" type="checkbox" :checked="Boolean(values[field.key])" @change="update(field.key,($event.target as HTMLInputElement).checked)">
           <select v-else-if="field.type === 'select'" :value="values[field.key]" @change="update(field.key,($event.target as HTMLSelectElement).value)"><option v-for="option in field.options" :key="option.value" :value="option.value">{{ option.label }}</option></select>
           <input v-else-if="field.type === 'number'" type="number" step="any" :min="field.min" :max="field.max" :value="values[field.key]" :aria-invalid="!fitsConfigField(field, values[field.key])" @input="update(field.key,($event.target as HTMLInputElement).valueAsNumber)">
-          <textarea v-else-if="field.type === 'text'" :value="String(values[field.key] ?? '')" @input="update(field.key,($event.target as HTMLTextAreaElement).value)" />
+          <textarea v-else-if="field.type === 'text'" :rows="textRows(values[field.key])" :value="String(values[field.key] ?? '')" @input="update(field.key,($event.target as HTMLTextAreaElement).value)" />
           <input v-else type="text" :value="values[field.key]" @input="update(field.key,($event.target as HTMLInputElement).value)">
           <small>{{ field.help }}</small>
         </label>
