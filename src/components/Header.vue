@@ -2,7 +2,6 @@
 import { Icon } from '@iconify/vue'
 import { computed, inject, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import MonitorSettings from '@/components/MonitorSettings.vue'
@@ -99,10 +98,8 @@ const sitename = computed(() => appStore.publicSettings?.sitename || 'Monitor')
   >
     <div data-app-header-content class="app-header-content flex-between h-14 max-w-[1280px] mx-auto">
       <div class="flex items-center gap-3 cursor-pointer" @click="router.push('/')">
-        <Avatar class="size-8">
-          <AvatarImage :src="siteFavicon" :alt="sitename" />
-          <AvatarFallback>{{ sitename.slice(0, 1) }}</AvatarFallback>
-        </Avatar>
+        <!-- 图标自带圆角玻璃底，不再套圆形头像裁切 -->
+        <img :src="siteFavicon" :alt="sitename" class="size-8 shrink-0" width="32" height="32">
         <h3 class="m-0 text-lg font-semibold">
           {{ sitename }}
         </h3>
