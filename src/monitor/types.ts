@@ -23,6 +23,8 @@ export type Node = {
   id: number
   name: string
   sort: number
+  /** Single public group name; absent on legacy hubs. */
+  group?: string
   public: boolean
   online: boolean
   /** ISO 3166-1 alpha-2, or empty when the hub could not locate the address. */
@@ -43,6 +45,8 @@ export type Node = {
   currency: string
   billing_cycle: string
   expires_at: string | null
+  /** Hub calendar days; null means unset, undefined means legacy hub. */
+  expires_in?: number | null
   traffic_limit: number
   traffic_mode: string
   traffic_reset_day: number

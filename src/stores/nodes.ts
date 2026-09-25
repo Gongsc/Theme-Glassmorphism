@@ -36,6 +36,8 @@ export interface NodeData {
   auto_renewal: boolean
   currency: string
   expired_at: string
+  /** Hub calendar days; null means unset, undefined means legacy hub. */
+  expires_in?: number | null
   group: string
   groups: string[]
   tags: string
@@ -190,6 +192,7 @@ const useNodesStore = defineStore('nodes', () => {
       auto_renewal: client.auto_renewal,
       currency: client.currency,
       expired_at: client.expired_at,
+      expires_in: client.expires_in,
       group: client.group,
       groups: parseNodeGroups(client.group),
       tags: client.tags,
@@ -335,6 +338,8 @@ const useNodesStore = defineStore('nodes', () => {
       node.auto_renewal = client.auto_renewal
     if (node.currency !== client.currency)
       node.currency = client.currency
+    if (node.expires_in !== client.expires_in)
+      node.expires_in = client.expires_in
     if (node.expired_at !== client.expired_at)
       node.expired_at = client.expired_at
     if (node.group !== client.group) {

@@ -79,6 +79,8 @@ export interface NodeInfo {
   auto_renewal: boolean
   currency: string
   expired_at: string | null
+  /** Hub calendar days; null means unset, undefined means legacy hub. */
+  expires_in?: number | null
   group: string
   tags: string
   public_remark: string

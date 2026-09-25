@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ALL_GROUPS, buildGroupTabs, isNodeInGroup } from '@/utils/groupHelper'
 import type { PermissionKey } from '@/services/auth.service'
 import type { HomeQuickControlKey } from '@/stores/app'
 import type { NodeData } from '@/stores/nodes'
@@ -134,10 +135,7 @@ watch(searchText, (value) => {
   updateDebouncedSearch(value)
 })
 
-const groups = computed(() => [
-  { tab: '全部节点', name: 'all' },
-  ...nodesStore.groups.map(g => ({ tab: g, name: g })),
-])
+const groups = computed(() => buildGroupTabs(nodesStore.visibleNodes))
 
 const quickControlKeys = computed<HomeQuickControlKey[]>(() => appStore.homeQuickControlOrder.filter(key => key !== 'monthlyCost'))
 const quickControls = computed(() => quickControlKeys.value.map(key => quickControlDefinitions[key]))
@@ -164,11 +162,11 @@ onMounted(async () => {
 })
 
 watch(
-  () => nodesStore.groups,
+  () => groups.value,
   (gs) => {
     const cur = appStore.nodeSelectedGroup
-    if (cur !== 'all' && !gs.includes(cur)) {
-      appStore.nodeSelectedGroup = 'all'
+    if (!gs.some(group => group.name === cur)) {
+      appStore.nodeSelectedGroup = ALL_GROUPS
     }
   },
   { immediate: true },
@@ -253,9 +251,9 @@ function getQuickControlCount(nodes: NodeData[], control: HomeQuickControlKey): 
 
 const groupNodeList = computed(() => {
   const selectedGroup = appStore.nodeSelectedGroup
-  if (selectedGroup === 'all')
+  if (selectedGroup === ALL_GROUPS)
     return nodesStore.visibleNodes
-  return nodesStore.visibleNodes.filter(node => node.groups.includes(selectedGroup))
+  return nodesStore.visibleNodes.filter(node => isNodeInGroup(node.group, selectedGroup))
 })
 
 const regionOptions = computed(() => {
@@ -492,9 +490,9 @@ const nodeCardGridClass = computed(() => {
                 <TabsList class="w-max h-8 bg-background/50 backdrop-blur-xl rounded-md pointer-events-auto">
                   <TabsTrigger
                     v-for="g in groups" :key="g.name" :value="g.name"
-                    @click="g.name === 'all' && resetNodeFilters()"
+                    @click="g.name === ALL_GROUPS && resetNodeFilters()"
                     class="h-6.5 flex-none shrink-0 text-xs border-none shadow-none rounded-sm"
-                    :class="g.name === 'all' && hasSecondaryFilter
+                    :class="g.name === ALL_GROUPS && hasSecondaryFilter
                       ? 'data-active:!bg-transparent dark:data-active:!bg-transparent data-active:!text-foreground/60 dark:data-active:!text-muted-foreground data-active:!shadow-none'
                       : 'data-active:text-selection'"
                   >

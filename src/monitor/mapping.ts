@@ -7,8 +7,8 @@ export function mapNode(n: Node) {
     cpu_cores: n.cpu_cores, os: n.os, kernel_version: n.kernel, region: n.country,
     remark: n.remark, public_remark: n.public_remark ?? '', mem_total: n.mem_total, swap_total: n.swap_total, disk_total: n.disk_total,
     version: n.agent_version, weight: n.sort, price: n.price, currency: n.currency,
-    billing_cycle: cycle[n.billing_cycle] ?? 0, auto_renewal: false, expired_at: n.expires_at || '',
-    group: '', tags: '', hidden: false, traffic_limit: n.traffic_limit, traffic_limit_type: n.traffic_mode,
+    billing_cycle: cycle[n.billing_cycle] ?? 0, auto_renewal: false, expired_at: n.expires_at || '', expires_in: n.expires_in,
+    group: typeof n.group === 'string' ? n.group : '', tags: '', hidden: false, traffic_limit: n.traffic_limit, traffic_limit_type: n.traffic_mode,
     created_at: '', updated_at: '',
   }
   const status = {

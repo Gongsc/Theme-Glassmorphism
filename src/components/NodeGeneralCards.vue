@@ -178,8 +178,10 @@ function formatExpiryNode(node: NodeData): string {
   const days = getExpiryDays(node)
   if (days === null)
     return `${node.name}: 未知`
-  if (days <= 0)
+  if (days < 0)
     return `${node.name}: 已过期`
+  if (days === 0)
+    return `${node.name}: 今天到期`
   return `${node.name}: ${days} 天`
 }
 

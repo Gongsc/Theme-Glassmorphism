@@ -108,7 +108,7 @@ const sitename = computed(() => appStore.publicSettings?.sitename || 'Monitor')
       </div>
       <TooltipProvider :delay-duration="200">
         <div class="flex items-center gap-2">
-          <MonitorSettings />
+          <MonitorSettings v-if="!appStore.loading && appStore.privateFeaturesAllowed" />
           <Tooltip v-for="button in actionButtons" :key="button.action">
             <TooltipTrigger as-child>
               <Button

@@ -112,8 +112,8 @@ function formatPricingAmount(amount: number): string {
 const fixedRows = computed(() => visibleNodes.value.map((node) => {
   const remainingCNY = financeHelper.calculateRemainingValueCNY(node, props.rates, props.now)
   const monthlyCNY = financeHelper.calculateMonthlyCostCNY(node, props.rates)
-  const expireStatus = getExpireStatus(node.expired_at)
-  const days = getDaysUntilExpired(node.expired_at)
+  const expireStatus = getExpireStatus(node.expired_at, node.expires_in)
+  const days = getDaysUntilExpired(node.expired_at, node.expires_in)
   const expiryLabel = expireStatus === 'unknown'
     ? '未设置'
     : expireStatus === 'expired'

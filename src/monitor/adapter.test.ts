@@ -50,3 +50,47 @@ try {
   await assert.rejects(dispatch('admin:getLogs'), /Monitor 不提供/)
 } finally {globalThis.fetch = oldFetch}
 console.log('Monitor history: endpoints, timeout samples, exact window loss and missing historical metrics passed')
+
+// The hub's calendar is authoritative, even when the browser date disagrees.
+const { getDaysUntilExpired, getExpireStatus, getExpireText, getRemainingValue } = await import('../utils/tagHelper.ts')
+const past = '2000-01-01'
+const future = '2999-01-01'
+for (const days of [undefined, null, 0, -3, 7]) {
+  assert.equal(mapNode({ ...node, expires_in: days }).client.expires_in, days)
+}
+assert.equal(getDaysUntilExpired(past, 7), 7)
+assert.notEqual(getExpireStatus(past, 7), 'expired')
+assert.equal(getExpireStatus(past, 0), 'critical')
+assert.equal(getExpireText(past, 'zh-CN', 0), '今天到期')
+assert.equal(getExpireText(past, 'en-US', 0), 'Expires today')
+assert.equal(getExpireStatus(future, -3), 'expired')
+assert.equal(getDaysUntilExpired(future, -3), -3)
+assert.equal(getExpireStatus(future, null), 'unknown')
+assert.equal(getExpireText(future, 'zh-CN', null), '-')
+assert.equal(getExpireStatus(past), 'expired')
+assert.equal(getExpireStatus(future), 'long_term')
+assert.equal(getExpireStatus('invalid'), 'unknown')
+assert.equal(getExpireStatus(future, NaN), 'unknown')
+assert.equal(getRemainingValue(30, 30, past, 7), 7)
+assert.equal(getRemainingValue(30, 30, future, null), 0)
+console.log('Monitor expiry: server days, today, expired, unset and legacy fallback passed')
+
+const { buildGroupTabs, groupTabId, isNodeInGroup, parseNodeGroups, ALL_GROUPS, UNGROUPED } = await import('../utils/groupHelper.ts')
+const groupNames = ['all', 'none', '*', '全部', '未分组', '全部节点', 'group:all', 'ungrouped', '甲;乙', ' 空格 ']
+const groupedNodes = groupNames.map((group, index) => mapNode({ ...node, id: index + 1, group }).client)
+assert.equal(mapNode(node).client.group, '')
+assert.deepEqual(parseNodeGroups('甲;乙'), ['甲;乙'])
+assert.deepEqual(parseNodeGroups(' 空格 '), [' 空格 '])
+assert.deepEqual(buildGroupTabs([{}, { group: '' }]), [{ tab: '全部节点', name: ALL_GROUPS }])
+const tabs = buildGroupTabs([...groupedNodes, groupedNodes[0]!, { group: '' }])
+assert.deepEqual(tabs.map(tab => tab.name), [ALL_GROUPS, ...groupNames.map(groupTabId), UNGROUPED])
+assert.equal(new Set(tabs.map(tab => tab.name)).size, tabs.length)
+for (const name of groupNames) {
+  assert.deepEqual(groupedNodes.filter(n => isNodeInGroup(n.group, groupTabId(name))).map(n => n.group), [name])
+}
+assert.equal(isNodeInGroup(undefined, UNGROUPED), true)
+assert.equal(isNodeInGroup('未分组', UNGROUPED), false)
+assert.equal(isNodeInGroup('all', ALL_GROUPS), true)
+assert.equal(isNodeInGroup('', groupTabId('all')), false)
+assert.deepEqual(buildGroupTabs([...groupedNodes].reverse()).slice(1).map(t => t.name), [...groupNames].reverse().map(groupTabId))
+console.log('Monitor groups: intact names, collision-free tabs, ordering, ungrouped, legacy fallback passed')

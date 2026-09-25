@@ -151,8 +151,8 @@ const remainingInfoTags = computed<RemainingInfoTag[]>(() => {
   if (node.price === 0)
     return []
   const lang = appStore.lang
-  const days = getDaysUntilExpired(node.expired_at)
-  const status = getExpireStatus(node.expired_at)
+  const days = getDaysUntilExpired(node.expired_at, node.expires_in)
+  const status = getExpireStatus(node.expired_at, node.expires_in)
   const items: RemainingInfoTag[] = []
   const expiryClass = status === 'expired' || status === 'critical'
     ? 'text-destructive'
@@ -167,6 +167,9 @@ const remainingInfoTags = computed<RemainingInfoTag[]>(() => {
   else if (status === 'long_term') {
     items.push({ icon: 'tabler:calendar-stats', text: lang === 'zh-CN' ? '长期' : 'Long-term', className: expiryClass })
   }
+  else if (days === 0) {
+    items.push({ icon: 'tabler:calendar-stats', text: lang === 'zh-CN' ? '今天到期' : 'Expires today', className: expiryClass })
+  }
   else if (lang === 'zh-CN') {
     items.push({ icon: 'tabler:calendar-stats', prefix: '剩余', value: String(days), unit: '天', className: expiryClass })
   }
@@ -177,7 +180,7 @@ const remainingInfoTags = computed<RemainingInfoTag[]>(() => {
   if (showPrice.value) {
     const text = isFreePrice(node.price)
       ? lang === 'zh-CN' ? '无' : 'N/A'
-      : formatCurrencyValue(getRemainingValue(node.price, node.billing_cycle, node.expired_at), node.currency)
+      : formatCurrencyValue(getRemainingValue(node.price, node.billing_cycle, node.expired_at, node.expires_in), node.currency)
     items.push({ icon: 'tabler:coins', text })
   }
   return items

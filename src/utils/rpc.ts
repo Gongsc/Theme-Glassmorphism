@@ -100,6 +100,8 @@ export interface Client {
   auto_renewal: boolean
   currency: string
   expired_at: string
+  /** Hub calendar days; null means unset, undefined means legacy hub. */
+  expires_in?: number | null
   group: string
   tags: string
   hidden: boolean

@@ -324,6 +324,14 @@ export function calculateRemainingValueCNY(
   exchangeRates: ExchangeRates,
   now = new Date(),
 ): number {
+  if (node.expires_in !== undefined) {
+    const days = node.expires_in
+    if (days === null || !Number.isFinite(days) || days <= 0) return 0
+    const price = getPriceCNY(node, exchangeRates)
+    const cycle = Number(node.billing_cycle)
+    if (days > LONG_TERM_YEARS * 365 || !Number.isFinite(cycle) || cycle <= 0) return price
+    return price * days / cycle
+  }
   if (!node.expired_at)
     return 0
 

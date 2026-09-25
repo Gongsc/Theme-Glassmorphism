@@ -176,7 +176,9 @@ function getExpiryDiffMs(expiredAt: string | number | undefined, now = Date.now(
  * @param expiredAt 过期时间（字符串或时间戳）
  * @returns 距离过期的天数；无效时间返回 0，未来不足一天返回 1
  */
-export function getDaysUntilExpired(expiredAt: string | number | undefined): number {
+export function getDaysUntilExpired(expiredAt: string | number | undefined, expiresIn?: number | null): number {
+  if (expiresIn !== undefined)
+    return typeof expiresIn === 'number' && Number.isFinite(expiresIn) ? expiresIn : 0
   const diffMs = getExpiryDiffMs(expiredAt)
   if (diffMs === null)
     return 0
@@ -191,7 +193,15 @@ export function getDaysUntilExpired(expiredAt: string | number | undefined): num
  * @param expiredAt 过期时间
  * @returns 过期状态
  */
-export function getExpireStatus(expiredAt: string | number | undefined): ExpireStatus {
+export function getExpireStatus(expiredAt: string | number | undefined, expiresIn?: number | null): ExpireStatus {
+  if (expiresIn !== undefined) {
+    if (expiresIn === null || !Number.isFinite(expiresIn)) return 'unknown'
+    if (expiresIn < 0) return 'expired'
+    if (expiresIn <= EXPIRE_THRESHOLDS.critical) return 'critical'
+    if (expiresIn <= EXPIRE_THRESHOLDS.warning) return 'warning'
+    if (expiresIn > EXPIRE_THRESHOLDS.long_term) return 'long_term'
+    return 'normal'
+  }
   const diffMs = getExpiryDiffMs(expiredAt)
   if (diffMs === null)
     return 'unknown'
@@ -256,9 +266,9 @@ export function getExpireStatusHexColor(status: ExpireStatus): string {
  * @param lang 语言
  * @returns 显示文本
  */
-export function getExpireText(expiredAt: string | number | undefined, lang: 'zh-CN' | 'en-US' = 'zh-CN'): string {
-  const days = getDaysUntilExpired(expiredAt)
-  const status = getExpireStatus(expiredAt)
+export function getExpireText(expiredAt: string | number | undefined, lang: 'zh-CN' | 'en-US' = 'zh-CN', expiresIn?: number | null): string {
+  const days = getDaysUntilExpired(expiredAt, expiresIn)
+  const status = getExpireStatus(expiredAt, expiresIn)
 
   if (status === 'unknown') {
     return '-'
@@ -271,6 +281,9 @@ export function getExpireText(expiredAt: string | number | undefined, lang: 'zh-
   if (status === 'long_term') {
     return lang === 'zh-CN' ? '长期' : 'Long-term'
   }
+
+  if (days === 0)
+    return lang === 'zh-CN' ? '今天到期' : 'Expires today'
 
   if (lang === 'zh-CN') {
     return `${days} 天`
@@ -392,17 +405,18 @@ export function getRemainingValue(
   price: number,
   billingCycle: number,
   expiredAt: string | number | undefined,
+  expiresIn?: number | null,
 ): number {
   if (!price || price <= 0)
     return 0
 
-  const status = getExpireStatus(expiredAt)
+  const status = getExpireStatus(expiredAt, expiresIn)
   if (status === 'unknown' || status === 'expired')
     return 0
   if (status === 'long_term')
     return price
 
-  const days = getDaysUntilExpired(expiredAt)
+  const days = getDaysUntilExpired(expiredAt, expiresIn)
   if (billingCycle <= 0)
     return price
 

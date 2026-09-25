@@ -264,12 +264,16 @@ function getPriceTags(node: NodeData): Array<string> {
   const tags: Array<string> = []
   const lang = appStore.lang
   if (node.price !== 0) {
-    const days = getDaysUntilExpired(node.expired_at)
-    const status = getExpireStatus(node.expired_at)
-    if (status === 'expired')
+    const days = getDaysUntilExpired(node.expired_at, node.expires_in)
+    const status = getExpireStatus(node.expired_at, node.expires_in)
+    if (status === 'unknown')
+      tags.push('-')
+    else if (status === 'expired')
       tags.push(lang === 'zh-CN' ? '已过期' : 'Expired')
     else if (status === 'long_term')
       tags.push(lang === 'zh-CN' ? '长期' : 'Long-term')
+    else if (days === 0)
+      tags.push(lang === 'zh-CN' ? '今天到期' : 'Expires today')
     else tags.push(lang === 'zh-CN' ? `剩余 ${days} 天` : `${days} days left`)
     const priceText = formatPriceWithCycle(node.price, node.billing_cycle, node.currency, lang)
     tags.push(priceText)

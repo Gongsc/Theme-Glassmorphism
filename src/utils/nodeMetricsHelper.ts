@@ -86,7 +86,9 @@ export function isHighLoadNode(node: NodeData, threshold: number): boolean {
   return getHighLoadMetrics(node, threshold).length > 0
 }
 
-export function hasValidExpiry(node: Pick<NodeData, 'expired_at'>): boolean {
+export function hasValidExpiry(node: Pick<NodeData, 'expired_at' | 'expires_in'>): boolean {
+  if (node.expires_in !== undefined)
+    return node.expires_in !== null && Number.isFinite(node.expires_in)
   if (!node.expired_at)
     return false
 
@@ -94,11 +96,11 @@ export function hasValidExpiry(node: Pick<NodeData, 'expired_at'>): boolean {
   return Number.isFinite(time)
 }
 
-export function getExpiryDays(node: Pick<NodeData, 'expired_at'>): number | null {
+export function getExpiryDays(node: Pick<NodeData, 'expired_at' | 'expires_in'>): number | null {
   if (!hasValidExpiry(node))
     return null
 
-  return getDaysUntilExpired(node.expired_at)
+  return getDaysUntilExpired(node.expired_at, node.expires_in)
 }
 
 export function isExpiringNode(node: NodeData, days: number): boolean {

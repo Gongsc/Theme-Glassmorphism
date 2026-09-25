@@ -256,9 +256,9 @@ const monthlyAverageCostText = computed(() => {
 })
 
 const remainingTimeText = computed(() => {
-  if (!data.value?.expired_at)
+  if (!data.value)
     return '-'
-  return getExpireText(data.value.expired_at, appStore.lang)
+  return getExpireText(data.value.expired_at, appStore.lang, data.value.expires_in)
 })
 
 const remainingValueText = computed(() => {
@@ -273,9 +273,9 @@ const remainingValueText = computed(() => {
 })
 
 const remainingTimeValueClass = computed(() => {
-  if (!data.value?.expired_at)
+  if (!data.value)
     return ''
-  const status = getExpireStatus(data.value.expired_at)
+  const status = getExpireStatus(data.value.expired_at, data.value.expires_in)
   if (status === 'expired' || status === 'critical')
     return 'text-destructive'
   if (status === 'warning')

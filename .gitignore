@@ -3,3 +3,4 @@ dist/
 release/
 *.tsbuildinfo
 .DS_Store
+CLAUDE.md
