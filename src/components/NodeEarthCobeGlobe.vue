@@ -153,6 +153,7 @@ function bindLabelRef(id: string) {
 const cobeLabels = computed(() => regionClusters.value.map(cluster => ({
   id: cluster.id,
   code: cluster.code,
+  city: cluster.city ? cluster.label : '',
 })))
 
 const themeColors = computed(() => {
@@ -379,10 +380,19 @@ function onPointerUp(e: PointerEvent) {
       :ref="bindLabelRef(label.id)"
       class="absolute left-0 top-0 z-3 rounded-[0.18rem] transition-[opacity,filter] duration-300"
     >
-      <img
-        :src="`/images/flags/${label.code}.svg`" :alt="label.code"
-        class="block size-5 rounded-[0.18rem] shadow-[0_8px_20px_rgb(15_23_42/0.24)]"
-      >
+      <!-- 城市级聚合在旗帜旁显示城市名；文字向右延伸，旗帜仍居中在坐标上 -->
+      <div class="relative">
+        <img
+          v-if="label.code"
+          :src="`/images/flags/${label.code}.svg`" :alt="label.code"
+          class="block size-5 rounded-[0.18rem] shadow-[0_8px_20px_rgb(15_23_42/0.24)]"
+        >
+        <span v-else class="block size-2.5 rounded-full bg-primary shadow-[0_4px_12px_rgb(15_23_42/0.24)]" />
+        <span
+          v-if="label.city"
+          class="absolute left-full top-1/2 ml-1 -translate-y-1/2 whitespace-nowrap rounded-full bg-background/80 px-1.5 text-[11px] font-semibold leading-[1.4] text-foreground shadow-[0_6px_16px_rgb(15_23_42/0.18)] backdrop-blur-sm"
+        >{{ label.city }}</span>
+      </div>
     </div>
 
     <div

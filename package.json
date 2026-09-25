@@ -16,7 +16,7 @@
     "lint": "oxlint src/monitor --deny-warnings",
     "preview": "vite preview",
     "package": "npm run build && node scripts/package.mjs",
-    "test": "node --experimental-strip-types src/monitor/adapter.test.ts && node --experimental-strip-types src/monitor/pingRows.test.ts && node --experimental-strip-types src/monitor/sparkline.test.ts && node --experimental-strip-types src/monitor/config.test.ts"
+    "test": "node --experimental-strip-types src/monitor/adapter.test.ts && node --experimental-strip-types src/monitor/pingRows.test.ts && node --experimental-strip-types src/monitor/sparkline.test.ts && node --experimental-strip-types src/monitor/cityMatch.test.ts && node --experimental-strip-types src/monitor/config.test.ts"
   },
   "dependencies": {
     "@iconify/vue": "^4.3.0",

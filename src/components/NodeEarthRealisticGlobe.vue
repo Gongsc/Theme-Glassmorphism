@@ -51,6 +51,8 @@ interface GlobeLabel {
   lat: number
   lng: number
   code: string
+  /** 仅城市级聚合显示名称，国家级保持只显示旗帜。 */
+  city: string
 }
 
 const {
@@ -75,6 +77,7 @@ const labelsData = computed<GlobeLabel[]>(() => regionClusters.value.map(cluster
   lat: cluster.coord[0],
   lng: cluster.coord[1],
   code: cluster.code,
+  city: cluster.city ? cluster.label : '',
 })))
 
 function earthTextureUrl() {
@@ -94,11 +97,20 @@ function createLabelElement(data: object): HTMLElement {
   root.className = 'earth-label'
   root.dataset.clusterId = label.id
 
-  const flag = document.createElement('img')
-  flag.className = 'earth-label-flag'
-  flag.src = `/images/flags/${label.code}.svg`
-  flag.alt = label.code
-  root.appendChild(flag)
+  if (label.code) {
+    const flag = document.createElement('img')
+    flag.className = 'earth-label-flag'
+    flag.src = `/images/flags/${label.code}.svg`
+    flag.alt = label.code
+    root.appendChild(flag)
+  }
+
+  if (label.city) {
+    const name = document.createElement('span')
+    name.className = 'earth-label-city'
+    name.textContent = label.city
+    root.appendChild(name)
+  }
 
   return root
 }
@@ -349,6 +361,26 @@ watch(shouldRender, (visible) => {
     opacity 500ms ease,
     filter 500ms ease;
   will-change: opacity, filter;
+}
+
+.earth-globe-host :deep(.earth-label:has(.earth-label-city)) {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  transform: translate(-0.6rem, -118%);
+}
+
+.earth-globe-host :deep(.earth-label-city) {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--background) 82%, transparent);
+  color: var(--foreground);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 6px 16px rgb(15 23 42 / 18%);
+  backdrop-filter: blur(6px);
 }
 
 .earth-globe-host :deep(.earth-label-flag) {

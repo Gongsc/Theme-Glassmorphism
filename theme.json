@@ -136,6 +136,20 @@
       "label": "地球样式"
     },
     {
+      "key": "earthShowCity",
+      "type": "boolean",
+      "default": false,
+      "help": "按节点名称识别城市（如 Tokyo、东京、LAX、HKG），在地球上定位到城市并显示城市名；识别不到的节点仍按国家显示。Monitor 不提供城市信息，结果只来自节点名称与下方规则。",
+      "label": "地球显示城市"
+    },
+    {
+      "key": "earthCityRules",
+      "type": "text",
+      "default": "",
+      "help": "每行一条：关键词 = 城市，优先于内置识别。多个关键词用逗号分隔；英文和代码按整词匹配，中文按包含匹配。城市可写内置城市的中文名、英文名或代码，或写 显示名@纬度,经度 自定义坐标；写 - 表示不识别城市。例如：\nedge-a, 边缘A = 香港\nmy-lab = 我的机房@31.2,121.5\nFrankfurt = -",
+      "label": "城市匹配规则"
+    },
+    {
       "key": "hideEarth",
       "type": "boolean",
       "default": false,

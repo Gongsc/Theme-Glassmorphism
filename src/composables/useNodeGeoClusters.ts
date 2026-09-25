@@ -1,6 +1,8 @@
 import type { NodeData } from '@/stores/nodes'
 import type { IpGeo } from '@/utils/ipGeoHelper'
 import { computed, ref, watch } from 'vue'
+import { matchNodeCity, parseCityRules } from '@/monitor/cityMatch'
+import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
 import { formatCityNameZh } from '@/utils/cityNameHelper'
 import { getCoordByCode, getCountryCodeFromRegion } from '@/utils/geoHelper'
@@ -20,6 +22,8 @@ export interface RegionCluster {
   org?: string
   servers: number
   onlineServers: number
+  /** 按节点名识别出的城市；为 false 时是国家中心点。 */
+  city?: boolean
 }
 
 interface ClusterSummary {
@@ -35,6 +39,9 @@ const IP_GEO_RETRY_INTERVAL_MS = 10 * 60 * 1000
 
 export function useNodeGeoClusters(options: UseNodeGeoClustersOptions = {}) {
   const nodesStore = useNodesStore()
+  const appStore = useAppStore()
+  const showCity = computed(() => appStore.publicSettings?.theme_settings?.earthShowCity === true)
+  const cityRules = computed(() => parseCityRules(String(appStore.publicSettings?.theme_settings?.earthCityRules ?? '')).rules)
 
   const displayNodes = computed(() => options.nodes?.() ?? nodesStore.visibleNodes)
   const ipGeoMap = ref(new Map<string, IpGeo>())
@@ -84,7 +91,7 @@ export function useNodeGeoClusters(options: UseNodeGeoClustersOptions = {}) {
     }
   }
 
-  function nodeClusterInfo(node: NodeData): { id: string, code: string, coord: [number, number], label: string, asn?: string, org?: string } | null {
+  function nodeClusterInfo(node: NodeData): { id: string, code: string, coord: [number, number], label: string, asn?: string, org?: string, city?: boolean } | null {
     const countryCode = getCountryCodeFromRegion(node.region)
     const ip = node.ipv4 || node.ipv6
     const geo = ip ? ipGeoMap.value.get(ip) : undefined
@@ -103,6 +110,14 @@ export function useNodeGeoClusters(options: UseNodeGeoClustersOptions = {}) {
         label,
         asn: geo.asn,
         org: geo.org,
+      }
+    }
+
+    if (showCity.value) {
+      const city = matchNodeCity(node.name, countryCode ?? '', cityRules.value)
+      if (city) {
+        const code = (countryCode || city.country).toUpperCase()
+        return { id: `${(code || 'xx').toLowerCase()}-city-${city.id}`, code, coord: [city.lat, city.lng], label: city.name, city: true }
       }
     }
 
@@ -129,7 +144,7 @@ export function useNodeGeoClusters(options: UseNodeGeoClustersOptions = {}) {
 
       let cluster = clustersById.get(info.id)
       if (!cluster) {
-        cluster = { id: info.id, code: info.code, coord: info.coord, label: info.label, asn: info.asn, org: info.org, servers: 0, onlineServers: 0 }
+        cluster = { id: info.id, code: info.code, coord: info.coord, label: info.label, asn: info.asn, org: info.org, servers: 0, onlineServers: 0, city: info.city }
         clustersById.set(info.id, cluster)
       }
       if (!cluster.asn && info.asn)
@@ -155,7 +170,7 @@ export function useNodeGeoClusters(options: UseNodeGeoClustersOptions = {}) {
   const offlineServers = computed(() => totalServers.value - onlineServers.value)
 
   function clusterKey(cluster: RegionCluster) {
-    return `${cluster.id}:${cluster.coord[0]},${cluster.coord[1]}:${cluster.label}:${cluster.asn ?? ''}:${cluster.org ?? ''}:${cluster.servers}:${cluster.onlineServers}`
+    return `${cluster.id}:${cluster.coord[0]},${cluster.coord[1]}:${cluster.label}:${cluster.city ? 1 : 0}:${cluster.asn ?? ''}:${cluster.org ?? ''}:${cluster.servers}:${cluster.onlineServers}`
   }
 
   const nodeIpSignature = computed(() => displayNodes.value
