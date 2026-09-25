@@ -6,6 +6,7 @@ import type { NodeData } from '@/stores/nodes'
 import { Icon } from '@iconify/vue'
 import { useDebounceFn } from '@vueuse/core'
 import { computed, defineAsyncComponent, nextTick, onActivated, onDeactivated, onMounted, ref, watch } from 'vue'
+import { SelectContent, SelectIcon, SelectItem, SelectItemIndicator, SelectItemText, SelectPortal, SelectRoot, SelectTrigger, SelectValue, SelectViewport } from 'reka-ui'
 import { useRouter } from 'vue-router'
 import DeferredRender from '@/components/DeferredRender.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
@@ -538,19 +539,37 @@ const nodeCardGridClass = computed(() => {
                 </Button>
               </div>
 
-              <div class="relative h-8 shrink-0">
-                <Icon icon="tabler:map-pin" :width="14" :height="14" class="pointer-events-none absolute left-2 top-1/2 z-1 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                <select
-                  v-model="selectedRegion"
+              <SelectRoot v-model="selectedRegion">
+                <SelectTrigger
                   aria-label="按区域筛选节点"
-                  class="h-8 w-32 rounded-md border-none bg-background/50 pl-7 pr-1 text-xs text-foreground shadow-none backdrop-blur-xs outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-36"
+                  class="group flex h-8 w-32 shrink-0 items-center gap-1.5 rounded-md bg-background/50 px-2 text-xs text-foreground shadow-none outline-none backdrop-blur-xs transition-colors hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-background/80 sm:w-36"
                 >
-                  <option value="all">全部区域</option>
-                  <option v-for="region in regionOptions" :key="region.value" :value="region.value">
-                    {{ region.label }} ({{ region.count }})
-                  </option>
-                </select>
-              </div>
+                  <Icon icon="tabler:map-pin" :width="14" :height="14" class="shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <SelectValue class="min-w-0 flex-1 truncate text-left" />
+                  <SelectIcon as-child>
+                    <Icon icon="tabler:chevron-down" :width="12" :height="12" class="shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                  </SelectIcon>
+                </SelectTrigger>
+                <SelectPortal>
+                  <SelectContent
+                    position="popper" side="bottom" align="end" :side-offset="6"
+                    class="bg-card z-50 max-h-(--reka-select-content-available-height) min-w-(--reka-select-trigger-width) overflow-hidden rounded-lg p-1 text-xs data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+                  >
+                    <SelectViewport class="max-h-72">
+                      <SelectItem
+                        v-for="region in [{ value: 'all', label: '全部区域', count: groupNodeList.length }, ...regionOptions]" :key="region.value" :value="region.value"
+                        class="relative flex h-7 cursor-pointer select-none items-center gap-2 rounded-md pl-2 pr-7 outline-none transition-colors data-[highlighted]:bg-slate-500/10 data-[state=checked]:text-selection"
+                      >
+                        <SelectItemText>{{ region.label }}</SelectItemText>
+                        <span class="ml-auto tabular-nums text-muted-foreground">{{ region.count }}</span>
+                        <SelectItemIndicator class="absolute right-2 inline-flex items-center">
+                          <Icon icon="tabler:check" :width="12" :height="12" />
+                        </SelectItemIndicator>
+                      </SelectItem>
+                    </SelectViewport>
+                  </SelectContent>
+                </SelectPortal>
+              </SelectRoot>
 
               <Button
                 variant="outline" size="icon" aria-label="卡片视图"
