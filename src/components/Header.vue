@@ -16,7 +16,7 @@ const { record: recordVisitorEvent } = useVisitorAudit()
 
 const isScrolled = inject<ReturnType<typeof ref<boolean>>>('isScrolled', ref(false))
 
-const siteFavicon = ref('/favicon.ico')
+const siteFavicon = ref('/favicon.svg')
 
 const actionButtons = computed(() => {
   const themeTitleMap = {
