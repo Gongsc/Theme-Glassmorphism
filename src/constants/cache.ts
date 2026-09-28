@@ -1,10 +1,6 @@
 import { TIME_MS } from './time'
 
 export const CACHE_CONFIG = {
-  providerMetadata: {
-    maxSize: 1000,
-    ttl: TIME_MS.day,
-  },
   request: {
     ttl: 5 * TIME_MS.minute,
   },

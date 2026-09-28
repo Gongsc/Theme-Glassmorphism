@@ -22,8 +22,6 @@ interface SnapshotRow {
   ipv4: string
   ipv6: string
   provider: string
-  asn: string
-  org: string
   os: string
   arch: string
   virtualization: string
@@ -46,7 +44,6 @@ interface SnapshotRow {
   billingCycleDays: number
   monthlyCostCNY: number
   expiredAt: string
-  tags: string
 }
 
 interface CsvColumn {
@@ -68,8 +65,6 @@ const { getNodeProviderMetadata } = useNodeProviderMetadata({
   nodes: () => props.nodes,
   customAliases: () => appStore.providerAliases,
   enabled: () => appStore.privateFeaturesAllowed,
-  allowGeoLookup: () => appStore.privateFeaturesAllowed,
-  geoPermission: 'snapshotExport',
 })
 
 onMounted(async () => {
@@ -165,8 +160,6 @@ function buildRow(node: NodeData): SnapshotRow {
     ipv4: node.ipv4 || '',
     ipv6: node.ipv6 || '',
     provider: providerMetadata?.provider?.displayName || '',
-    asn: providerMetadata?.geo?.asn || '',
-    org: providerMetadata?.geo?.org || '',
     os: node.os,
     arch: node.arch,
     virtualization: node.virtualization,
@@ -189,7 +182,6 @@ function buildRow(node: NodeData): SnapshotRow {
     billingCycleDays: node.billing_cycle || 0,
     monthlyCostCNY: financeHelper.calculateMonthlyCostCNY(node, exchangeRates.value),
     expiredAt: node.expired_at,
-    tags: node.tags,
   }
 }
 
@@ -213,8 +205,6 @@ const csvColumns: CsvColumn[] = [
   { label: 'IPv4', value: row => row.ipv4 || '-' },
   { label: 'IPv6', value: row => row.ipv6 || '-' },
   { label: '服务商', value: row => row.provider || '-' },
-  { label: 'ASN', value: row => row.asn || '-' },
-  { label: '组织', value: row => row.org || '-' },
   { label: '系统', value: row => row.os || '-' },
   { label: '架构', value: row => row.arch || '-' },
   { label: '虚拟化', value: row => row.virtualization || '-' },
@@ -241,7 +231,6 @@ const csvColumns: CsvColumn[] = [
   { label: '每 GB 内存月成本', value: row => formatValueCost(getCostPerMemoryGb(row)) },
   { label: '每 GB 流量月成本', value: row => formatValueCost(getCostPerTrafficGb(row)) },
   { label: '到期时间', value: row => formatDate(row.expiredAt) },
-  { label: '标签', value: row => row.tags || '-' },
 ]
 
 function yieldToBrowser(): Promise<void> {
@@ -277,9 +266,6 @@ function buildJsonNode(row: SnapshotRow) {
       ipv4: row.ipv4 || '-',
       ipv6: row.ipv6 || '-',
       provider: row.provider || '-',
-      asn: row.asn || '-',
-      organization: row.org || '-',
-      tags: row.tags || '-',
     },
     system: {
       os: row.os || '-',
@@ -479,7 +465,7 @@ async function exportCsv(): Promise<void> {
             当前数据快照导出
           </div>
           <div class="text-xs text-muted-foreground">
-            导出当前已加载的可见节点规格、状态、成本、厂商和 ASN 信息。
+            导出当前已加载的可见节点规格、状态、成本和厂商信息。
           </div>
         </div>
       </template>
@@ -524,7 +510,7 @@ async function exportCsv(): Promise<void> {
               状态
             </th>
             <th class="px-2 py-2 font-medium">
-              厂商 / ASN
+              厂商
             </th>
             <th class="px-2 py-2 font-medium">
               规格
@@ -546,7 +532,7 @@ async function exportCsv(): Promise<void> {
               {{ formatStatus(row.online) }}
             </td>
             <td class="px-2 py-3 text-xs text-muted-foreground">
-              {{ row.provider || '-' }}<br>{{ row.asn || row.org || '-' }}
+              {{ row.provider || '-' }}
             </td>
             <td class="px-2 py-3 text-xs text-muted-foreground">
               {{ row.cpuCores }} 核 · {{ formatBytes(row.memoryTotalBytes) }} · {{ formatBytes(row.diskTotalBytes) }}

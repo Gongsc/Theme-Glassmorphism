@@ -1,12 +1,9 @@
 import type { NodeData } from '@/stores/nodes'
-import type { IpGeo } from '@/utils/ipGeoHelper'
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { matchNodeCity, parseCityRules } from '@/monitor/cityMatch'
 import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
-import { formatCityNameZh } from '@/utils/cityNameHelper'
 import { getCoordByCode, getCountryCodeFromRegion } from '@/utils/geoHelper'
-import { lookupIpGeo } from '@/utils/ipGeoHelper'
 import { getRegionDisplayName } from '@/utils/regionHelper'
 
 interface UseNodeGeoClustersOptions {
@@ -18,8 +15,6 @@ export interface RegionCluster {
   code: string
   coord: [number, number]
   label: string
-  asn?: string
-  org?: string
   servers: number
   onlineServers: number
   /** 按节点名识别出的城市；为 false 时是国家中心点。 */
@@ -32,11 +27,6 @@ interface ClusterSummary {
   onlineServers: number
 }
 
-const CITY_SLUG_INVALID_REGEX = /[^a-z0-9]+/g
-const CITY_SLUG_EDGE_REGEX = /^-+|-+$/g
-const IP_GEO_LOOKUP_BATCH_SIZE = 8
-const IP_GEO_RETRY_INTERVAL_MS = 10 * 60 * 1000
-
 export function useNodeGeoClusters(options: UseNodeGeoClustersOptions = {}) {
   const nodesStore = useNodesStore()
   const appStore = useAppStore()
@@ -44,74 +34,9 @@ export function useNodeGeoClusters(options: UseNodeGeoClustersOptions = {}) {
   const cityRules = computed(() => parseCityRules(String(appStore.publicSettings?.theme_settings?.earthCityRules ?? '')).rules)
 
   const displayNodes = computed(() => options.nodes?.() ?? nodesStore.visibleNodes)
-  const ipGeoMap = ref(new Map<string, IpGeo>())
-  const failedIpAttempts = new Map<string, number>()
 
-  async function resolveNodeCities(nodes: NodeData[]): Promise<void> {
-    const ips: string[] = []
-    const seenIps = new Set<string>()
-    const now = Date.now()
-
-    for (const node of nodes) {
-      const ip = node.ipv4 || node.ipv6
-      if (!ip || seenIps.has(ip) || ipGeoMap.value.has(ip))
-        continue
-
-      const failedAt = failedIpAttempts.get(ip)
-      if (failedAt && now - failedAt < IP_GEO_RETRY_INTERVAL_MS)
-        continue
-
-      seenIps.add(ip)
-      ips.push(ip)
-    }
-
-    for (let i = 0; i < ips.length; i += IP_GEO_LOOKUP_BATCH_SIZE) {
-      const batch = ips.slice(i, i + IP_GEO_LOOKUP_BATCH_SIZE)
-      const results = await Promise.all(batch.map(async (ip) => {
-        const geo = await lookupIpGeo(ip)
-        return { ip, geo }
-      }))
-      const resolved = results.filter((result): result is { ip: string, geo: IpGeo } => result.geo !== null)
-
-      for (const { ip, geo } of results) {
-        if (geo)
-          failedIpAttempts.delete(ip)
-        else
-          failedIpAttempts.set(ip, Date.now())
-      }
-
-      if (!resolved.length)
-        continue
-
-      const next = new Map(ipGeoMap.value)
-      for (const { ip, geo } of resolved) {
-        next.set(ip, geo)
-      }
-      ipGeoMap.value = next
-    }
-  }
-
-  function nodeClusterInfo(node: NodeData): { id: string, code: string, coord: [number, number], label: string, asn?: string, org?: string, city?: boolean } | null {
+  function nodeClusterInfo(node: NodeData): { id: string, code: string, coord: [number, number], label: string, city?: boolean } | null {
     const countryCode = getCountryCodeFromRegion(node.region)
-    const ip = node.ipv4 || node.ipv6
-    const geo = ip ? ipGeoMap.value.get(ip) : undefined
-
-    if (geo && Number.isFinite(geo.lat) && Number.isFinite(geo.lng)) {
-      const code = (geo.countryCode || countryCode || '').toUpperCase()
-      const citySlug = (geo.city || `${geo.lat.toFixed(2)},${geo.lng.toFixed(2)}`)
-        .toLowerCase()
-        .replace(CITY_SLUG_INVALID_REGEX, '-')
-        .replace(CITY_SLUG_EDGE_REGEX, '')
-      const label = formatCityNameZh(geo.city) || getRegionDisplayName(node.region) || getRegionDisplayName(code) || ''
-      return {
-        id: `${(code || 'xx').toLowerCase()}-${citySlug || 'city'}`,
-        code: code || (countryCode ?? ''),
-        coord: [geo.lat, geo.lng],
-        label,
-        asn: geo.asn,
-        org: geo.org,
-      }
-    }
 
     if (showCity.value) {
       const city = matchNodeCity(node.name, countryCode ?? '', cityRules.value)
@@ -144,13 +69,9 @@ export function useNodeGeoClusters(options: UseNodeGeoClustersOptions = {}) {
 
       let cluster = clustersById.get(info.id)
       if (!cluster) {
-        cluster = { id: info.id, code: info.code, coord: info.coord, label: info.label, asn: info.asn, org: info.org, servers: 0, onlineServers: 0, city: info.city }
+        cluster = { id: info.id, code: info.code, coord: info.coord, label: info.label, servers: 0, onlineServers: 0, city: info.city }
         clustersById.set(info.id, cluster)
       }
-      if (!cluster.asn && info.asn)
-        cluster.asn = info.asn
-      if (!cluster.org && info.org)
-        cluster.org = info.org
       cluster.servers += 1
 
       if (node.online)
@@ -170,17 +91,8 @@ export function useNodeGeoClusters(options: UseNodeGeoClustersOptions = {}) {
   const offlineServers = computed(() => totalServers.value - onlineServers.value)
 
   function clusterKey(cluster: RegionCluster) {
-    return `${cluster.id}:${cluster.coord[0]},${cluster.coord[1]}:${cluster.label}:${cluster.city ? 1 : 0}:${cluster.asn ?? ''}:${cluster.org ?? ''}:${cluster.servers}:${cluster.onlineServers}`
+    return `${cluster.id}:${cluster.coord[0]},${cluster.coord[1]}:${cluster.label}:${cluster.city ? 1 : 0}:${cluster.servers}:${cluster.onlineServers}`
   }
-
-  const nodeIpSignature = computed(() => displayNodes.value
-    .map(node => node.ipv4 || node.ipv6 || '')
-    .filter(Boolean)
-    .join('|'))
-
-  watch(nodeIpSignature, () => {
-    void resolveNodeCities(displayNodes.value)
-  }, { immediate: true })
 
   return {
     displayNodes,

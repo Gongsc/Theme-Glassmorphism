@@ -257,10 +257,6 @@
           "label": "流量"
         },
         {
-          "value": "GPU",
-          "label": "GPU"
-        },
-        {
           "value": "资产",
           "label": "资产"
         },
@@ -280,7 +276,7 @@
       "key": "generalCardKeys",
       "type": "text",
       "default": "memory\ndisk\nremainingValue\ntotalTraffic\nuploadSpeed\ndownloadSpeed",
-      "help": "逗号、空格或换行分隔。 currentTime=当前时间； memory=内存； disk=硬盘； remainingValue=剩余价值； totalTraffic=累计流量； uploadSpeed=实时上行； downloadSpeed=实时下行； onlineNodes=在线节点； offlineNodes=离线节点； avgCpu=平均CPU； avgGpu=平均GPU； avgLoad=平均负载； swap=交换内存； processes=进程总数； connections=连接总数； cpuCores=CPU核心； gpuNodes=GPU节点； gpuPeakNode=GPU峰值节点； trafficQuota=流量配额； trafficPeak=实时峰值； uploadPeakNode=上行最高节点； downloadPeakNode=下行最高节点； highLoadNodes=高负载节点； expiringNodes=即将到期； trafficWarnings=流量预警； connectionPeakNode=连接峰值节点； regionDistribution=地区分布； systemDistribution=系统分布； virtualizationDistribution=虚拟化分布； monthlyCost=月费用； yearlyCost=年费用。",
+      "help": "逗号、空格或换行分隔。 currentTime=当前时间； memory=内存； disk=硬盘； remainingValue=剩余价值； totalTraffic=累计流量； uploadSpeed=实时上行； downloadSpeed=实时下行； onlineNodes=在线节点； offlineNodes=离线节点； avgCpu=平均CPU； avgLoad=平均负载； swap=交换内存； processes=进程总数； connections=连接总数； cpuCores=CPU核心； trafficQuota=流量配额； trafficPeak=实时峰值； uploadPeakNode=上行最高节点； downloadPeakNode=下行最高节点； highLoadNodes=高负载节点； expiringNodes=即将到期； trafficWarnings=流量预警； connectionPeakNode=连接峰值节点； regionDistribution=地区分布； systemDistribution=系统分布； virtualizationDistribution=虚拟化分布； monthlyCost=月费用； yearlyCost=年费用。",
       "label": "自定义头部卡片 keys"
     },
     {
@@ -291,7 +287,7 @@
       "key": "homeToolsEnabled",
       "type": "boolean",
       "default": true,
-      "help": "登录后显示拓扑、性价比、健康和导出工具。",
+      "help": "登录后显示性价比、健康和导出工具。",
       "label": "登录后显示高级工具"
     },
     {
@@ -390,22 +386,15 @@
       "key": "nodeListMetadataEnabled",
       "type": "boolean",
       "default": true,
-      "help": "在列表视图显示节点信息栏；关闭后隐藏厂商、地区、ASN 和标签信息列。",
+      "help": "在列表视图显示节点信息栏；关闭后隐藏厂商、地区和分组信息列。",
       "label": "列表信息栏"
     },
     {
       "key": "nodeListMetadataFields",
       "type": "text",
-      "default": "provider\nregion\nasn",
-      "help": "逗号、空格或换行分隔。 provider=厂商； region=地区； city=城市； asn=ASN； tags=自定义标签； group=分组。",
+      "default": "provider\nregion",
+      "help": "逗号、空格或换行分隔。 provider=厂商； region=地区； group=分组。",
       "label": "列表信息字段 keys"
-    },
-    {
-      "key": "nodeListCustomTagsVisible",
-      "type": "boolean",
-      "default": true,
-      "help": "列表信息字段包含 tags 时，是否显示节点自定义标签；无标签节点不会显示空标签。",
-      "label": "列表显示自定义标签"
     },
     {
       "key": "offlineNodesLast",
@@ -490,10 +479,6 @@
           "label": "网络"
         },
         {
-          "value": "GPU",
-          "label": "GPU"
-        },
-        {
           "value": "综合",
           "label": "综合"
         },
@@ -502,26 +487,19 @@
           "label": "自定义"
         }
       ],
-      "help": "宽屏每行 4 张，中屏 3 张，移动端 2 张。财务/状态/网络/GPU=8 张；资源=12 张；综合=16 张；自定义读取下方 keys。",
+      "help": "宽屏每行 4 张，中屏 3 张，移动端 2 张。财务/状态/资源/网络=8 张；综合=16 张；自定义读取下方 keys。",
       "label": "详情概览卡片方案"
     },
     {
       "key": "detailMetricCardKeys",
       "type": "text",
       "default": "nodePrice\nmonthlyCost\nremainingTime\nremainingValue\ntotalTraffic\ntrafficQuota\nuptime\nconnections",
-      "help": "逗号、空格或换行分隔。 nodePrice=节点价格； monthlyCost=月均支出； remainingTime=剩余时间； remainingValue=剩余价值； cpuUsage=CPU使用率； gpuUsage=GPU使用率； memoryUsage=内存使用率； swapUsage=交换内存使用率； diskUsage=硬盘使用率； load=系统负载； temperature=系统温度； processes=进程数； connections=连接数； uptime=运行时间； uploadSpeed=实时上行； downloadSpeed=实时下行； totalTraffic=累计流量； trafficQuota=流量配额。",
+      "help": "逗号、空格或换行分隔。 nodePrice=节点价格； monthlyCost=月均支出； remainingTime=剩余时间； remainingValue=剩余价值； cpuUsage=CPU使用率； memoryUsage=内存使用率； swapUsage=交换内存使用率； diskUsage=硬盘使用率； load=系统负载； processes=进程数； connections=连接数； uptime=运行时间； uploadSpeed=实时上行； downloadSpeed=实时下行； totalTraffic=累计流量； trafficQuota=流量配额。",
       "label": "自定义详情卡片 keys"
     },
     {
       "type": "title",
       "label": "07 · 节点详情图表"
-    },
-    {
-      "key": "gpuChartEnabled",
-      "type": "boolean",
-      "default": false,
-      "help": "控制 GPU 利用率、设备、显存和 GPU 温度序列；无 GPU 数据时自动隐藏。",
-      "label": "显示 GPU 指标图"
     },
     {
       "key": "chartDashboardPreset",
@@ -537,42 +515,18 @@
           "label": "精简"
         },
         {
-          "value": "资源",
-          "label": "资源"
-        },
-        {
-          "value": "网络",
-          "label": "网络"
-        },
-        {
-          "value": "GPU",
-          "label": "GPU"
-        },
-        {
-          "value": "延迟",
-          "label": "延迟"
-        },
-        {
-          "value": "运维",
-          "label": "运维"
-        },
-        {
-          "value": "完整",
-          "label": "完整"
-        },
-        {
           "value": "自定义",
           "label": "自定义"
         }
       ],
-      "help": "资源、网络、GPU、延迟和运维按指标族组合；完整覆盖官方 25 个指标。自定义读取下方 keys。",
+      "help": "默认=CPU、内存、磁盘、网络；精简=CPU、内存、网络；自定义读取下方 keys。",
       "label": "详情负载图方案"
     },
     {
       "key": "chartDashboardTemplate",
       "type": "text",
-      "default": "cpu\nmemory\ndisk\nnetwork\ngpu\nconnections\nprocess",
-      "help": "逗号、空格或换行分隔。 cpu=CPU/负载； memory=RAM/Swap及总量； disk=磁盘/总量； network=实时上下行； traffic=累计与周期流量； gpu=GPU/设备利用率； gpuMemory=GPU显存/总量； temperature=系统/GPU温度； connections=TCP/UDP； process=进程； ping=Ping延迟； pingLoss=Ping丢包。旧 JSON 仍兼容。",
+      "default": "cpu\nmemory\ndisk\nnetwork",
+      "help": "逗号、空格或换行分隔。 cpu=CPU； memory=内存/总量； disk=磁盘/总量； network=实时上下行。旧 JSON 仍兼容。",
       "label": "自定义详情图表 keys"
     },
     {

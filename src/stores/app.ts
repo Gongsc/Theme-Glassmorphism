@@ -18,14 +18,11 @@ export type GeneralCardKey
     | 'downloadSpeed'
     | 'onlineNodes'
     | 'avgCpu'
-    | 'avgGpu'
     | 'avgLoad'
     | 'swap'
     | 'processes'
     | 'connections'
     | 'cpuCores'
-    | 'gpuNodes'
-    | 'gpuPeakNode'
     | 'trafficQuota'
     | 'trafficPeak'
     | 'uploadPeakNode'
@@ -58,12 +55,10 @@ export type DetailMetricCardKey
     | 'remainingTime'
     | 'remainingValue'
     | 'cpuUsage'
-    | 'gpuUsage'
     | 'memoryUsage'
     | 'swapUsage'
     | 'diskUsage'
     | 'load'
-    | 'temperature'
     | 'processes'
     | 'connections'
     | 'uptime'
@@ -75,15 +70,12 @@ export type DetailMetricCardKey
 export type NodeListMetadataField
   = | 'provider'
     | 'region'
-    | 'city'
-    | 'asn'
-    | 'tags'
     | 'group'
 
-type GeneralCardPreset = 'official' | 'basic' | 'ops' | 'resource' | 'finance' | 'traffic' | 'gpu' | 'asset' | 'full' | 'custom'
+type GeneralCardPreset = 'official' | 'basic' | 'ops' | 'resource' | 'finance' | 'traffic' | 'asset' | 'full' | 'custom'
 type HomeQuickControlPreset = 'basic' | 'traffic' | 'ops' | 'full' | 'custom'
-type DetailMetricCardPreset = 'finance' | 'status' | 'resource' | 'network' | 'gpu' | 'full' | 'custom'
-type ChartDashboardPreset = 'all' | 'compact' | 'resource' | 'network' | 'gpu' | 'latency' | 'ops' | 'full' | 'custom' | 'advanced'
+type DetailMetricCardPreset = 'finance' | 'status' | 'resource' | 'network' | 'full' | 'custom'
+type ChartDashboardPreset = 'all' | 'compact' | 'custom' | 'advanced'
 type Lang = 'zh-CN' | 'en-US'
 type NodeViewMode = 'card' | 'list'
 type NodeCardSize = 'mini' | 'compact' | 'comfortable' | 'large'
@@ -96,14 +88,6 @@ export type ChartDashboardCardKey
     | 'memory'
     | 'disk'
     | 'network'
-    | 'traffic'
-    | 'gpu'
-    | 'gpuMemory'
-    | 'temperature'
-    | 'connections'
-    | 'process'
-    | 'ping'
-    | 'pingLoss'
 
 export interface GlassCustomColors {
   lightCard: string
@@ -154,14 +138,11 @@ const ALL_GENERAL_CARD_KEYS = [
   'onlineNodes',
   'offlineNodes',
   'avgCpu',
-  'avgGpu',
   'avgLoad',
   'swap',
   'processes',
   'connections',
   'cpuCores',
-  'gpuNodes',
-  'gpuPeakNode',
   'trafficQuota',
   'trafficPeak',
   'uploadPeakNode',
@@ -186,14 +167,11 @@ const DEFAULT_GENERAL_CARD_ENABLED: Record<GeneralCardKey, boolean> = {
   downloadSpeed: true,
   onlineNodes: false,
   avgCpu: false,
-  avgGpu: false,
   avgLoad: false,
   swap: false,
   processes: false,
   connections: false,
   cpuCores: false,
-  gpuNodes: false,
-  gpuPeakNode: false,
   trafficQuota: false,
   trafficPeak: false,
   uploadPeakNode: false,
@@ -246,17 +224,11 @@ const ALL_HOME_QUICK_CONTROL_KEYS = [
 const DEFAULT_NODE_LIST_METADATA_FIELDS: NodeListMetadataField[] = [
   'provider',
   'region',
-  'asn',
 ]
 
-const DEFAULT_CHART_DASHBOARD_CARDS: ChartDashboardCardKey[] = ['cpu', 'memory', 'disk', 'network', 'gpu', 'connections', 'process']
+const DEFAULT_CHART_DASHBOARD_CARDS: ChartDashboardCardKey[] = ['cpu', 'memory', 'disk', 'network']
 const ALL_CHART_DASHBOARD_CARDS = [
   ...DEFAULT_CHART_DASHBOARD_CARDS,
-  'traffic',
-  'gpuMemory',
-  'temperature',
-  'ping',
-  'pingLoss',
 ] as const satisfies readonly ChartDashboardCardKey[]
 
 const DEFAULT_DETAIL_METRIC_CARD_ORDER: DetailMetricCardKey[] = [
@@ -269,12 +241,10 @@ const DEFAULT_DETAIL_METRIC_CARD_ORDER: DetailMetricCardKey[] = [
 const ALL_DETAIL_METRIC_CARD_KEYS = [
   ...DEFAULT_DETAIL_METRIC_CARD_ORDER,
   'cpuUsage',
-  'gpuUsage',
   'memoryUsage',
   'swapUsage',
   'diskUsage',
   'load',
-  'temperature',
   'processes',
   'connections',
   'uptime',
@@ -286,7 +256,6 @@ const ALL_DETAIL_METRIC_CARD_KEYS = [
 
 const ALL_NODE_LIST_METADATA_FIELDS = [
   ...DEFAULT_NODE_LIST_METADATA_FIELDS,
-  'tags',
   'group',
 ] as const satisfies readonly NodeListMetadataField[]
 
@@ -332,21 +301,12 @@ const GENERAL_CARD_PRESETS: Record<GeneralCardPreset, GeneralCardKey[]> = {
     'trafficPeak',
     'trafficWarnings',
   ],
-  gpu: [
-    'gpuNodes',
-    'avgGpu',
-    'gpuPeakNode',
-    'avgCpu',
-    'memory',
-    'trafficPeak',
-  ],
   asset: [
     'onlineNodes',
     'regionDistribution',
     'systemDistribution',
     'virtualizationDistribution',
     'cpuCores',
-    'gpuNodes',
   ],
   full: [...ALL_GENERAL_CARD_KEYS],
   custom: DEFAULT_GENERAL_CARD_ORDER,
@@ -362,23 +322,16 @@ const HOME_QUICK_CONTROL_PRESETS: Record<HomeQuickControlPreset, HomeQuickContro
 
 const DETAIL_METRIC_CARD_PRESETS: Record<DetailMetricCardPreset, DetailMetricCardKey[]> = {
   finance: ['nodePrice', 'monthlyCost', 'remainingTime', 'remainingValue', 'totalTraffic', 'trafficQuota', 'uptime', 'connections'],
-  status: ['cpuUsage', 'memoryUsage', 'diskUsage', 'load', 'temperature', 'uptime', 'processes', 'connections'],
-  resource: ['cpuUsage', 'gpuUsage', 'memoryUsage', 'swapUsage', 'diskUsage', 'load', 'temperature', 'processes', 'connections', 'uptime', 'uploadSpeed', 'downloadSpeed'],
+  status: ['cpuUsage', 'memoryUsage', 'swapUsage', 'diskUsage', 'load', 'uptime', 'processes', 'connections'],
+  resource: ['cpuUsage', 'memoryUsage', 'swapUsage', 'diskUsage', 'load', 'processes', 'connections', 'uptime'],
   network: ['uploadSpeed', 'downloadSpeed', 'totalTraffic', 'trafficQuota', 'connections', 'processes', 'uptime', 'remainingTime'],
-  gpu: ['gpuUsage', 'cpuUsage', 'memoryUsage', 'temperature', 'load', 'processes', 'connections', 'uptime'],
-  full: ['nodePrice', 'monthlyCost', 'remainingTime', 'remainingValue', 'cpuUsage', 'gpuUsage', 'memoryUsage', 'swapUsage', 'diskUsage', 'load', 'temperature', 'processes', 'connections', 'uploadSpeed', 'downloadSpeed', 'totalTraffic'],
+  full: ['nodePrice', 'monthlyCost', 'remainingTime', 'remainingValue', 'cpuUsage', 'memoryUsage', 'swapUsage', 'diskUsage', 'load', 'processes', 'connections', 'uptime', 'uploadSpeed', 'downloadSpeed', 'totalTraffic', 'trafficQuota'],
   custom: DEFAULT_DETAIL_METRIC_CARD_ORDER,
 }
 
 const CHART_DASHBOARD_PRESETS: Record<Exclude<ChartDashboardPreset, 'advanced'>, ChartDashboardCardKey[]> = {
   all: DEFAULT_CHART_DASHBOARD_CARDS,
   compact: ['cpu', 'memory', 'network'],
-  resource: ['cpu', 'memory', 'disk', 'temperature', 'process'],
-  network: ['network', 'traffic', 'connections'],
-  gpu: ['gpu', 'gpuMemory', 'temperature', 'cpu', 'memory'],
-  latency: ['ping', 'pingLoss', 'network'],
-  ops: ['cpu', 'memory', 'disk', 'network', 'temperature', 'connections', 'process', 'ping', 'pingLoss'],
-  full: ['cpu', 'memory', 'disk', 'network', 'traffic', 'gpu', 'gpuMemory', 'temperature', 'connections', 'process', 'ping', 'pingLoss'],
   custom: DEFAULT_CHART_DASHBOARD_CARDS,
 }
 
@@ -395,8 +348,6 @@ const GENERAL_CARD_PRESET_ALIASES: Record<string, GeneralCardPreset> = {
   财务: 'finance',
   traffic: 'traffic',
   流量: 'traffic',
-  gpu: 'gpu',
-  GPU: 'gpu',
   asset: 'asset',
   资产: 'asset',
   full: 'full',
@@ -417,14 +368,11 @@ const GENERAL_CARD_LABEL_ALIASES: Record<string, GeneralCardKey> = {
   在线节点: 'onlineNodes',
   离线节点: 'offlineNodes',
   平均CPU: 'avgCpu',
-  平均GPU: 'avgGpu',
   平均负载: 'avgLoad',
   交换内存: 'swap',
   进程总数: 'processes',
   连接数: 'connections',
   CPU核心: 'cpuCores',
-  GPU节点: 'gpuNodes',
-  GPU峰值: 'gpuPeakNode',
   流量配额: 'trafficQuota',
   实时峰值: 'trafficPeak',
   上行最高: 'uploadPeakNode',
@@ -450,8 +398,6 @@ const DETAIL_METRIC_CARD_PRESET_ALIASES: Record<string, DetailMetricCardPreset> 
   资源: 'resource',
   network: 'network',
   网络: 'network',
-  gpu: 'gpu',
-  GPU: 'gpu',
   full: 'full',
   综合: 'full',
   custom: 'custom',
@@ -464,12 +410,10 @@ const DETAIL_METRIC_CARD_LABEL_ALIASES: Record<string, DetailMetricCardKey> = {
   剩余时间: 'remainingTime',
   剩余价值: 'remainingValue',
   CPU使用率: 'cpuUsage',
-  GPU使用率: 'gpuUsage',
   内存使用率: 'memoryUsage',
   交换内存使用率: 'swapUsage',
   硬盘使用率: 'diskUsage',
   系统负载: 'load',
-  系统温度: 'temperature',
   进程数: 'processes',
   连接数: 'connections',
   运行时间: 'uptime',
@@ -485,18 +429,6 @@ const CHART_DASHBOARD_PRESET_ALIASES: Record<string, ChartDashboardPreset> = {
   默认: 'all',
   compact: 'compact',
   精简: 'compact',
-  resource: 'resource',
-  资源: 'resource',
-  network: 'network',
-  网络: 'network',
-  gpu: 'gpu',
-  GPU: 'gpu',
-  latency: 'latency',
-  延迟: 'latency',
-  ops: 'ops',
-  运维: 'ops',
-  full: 'full',
-  完整: 'full',
   custom: 'custom',
   自定义: 'custom',
   advanced: 'advanced',
@@ -508,14 +440,6 @@ const CHART_DASHBOARD_LABEL_ALIASES: Record<string, ChartDashboardCardKey> = {
   内存: 'memory',
   硬盘: 'disk',
   网络: 'network',
-  流量: 'traffic',
-  GPU: 'gpu',
-  GPU显存: 'gpuMemory',
-  温度: 'temperature',
-  连接: 'connections',
-  进程: 'process',
-  延迟: 'ping',
-  丢包: 'pingLoss',
 }
 
 const HOME_QUICK_CONTROL_PRESET_ALIASES: Record<string, HomeQuickControlPreset> = {
@@ -1105,11 +1029,9 @@ const useAppStore = defineStore('app', () => {
     return parseKeyList(themeSettings.value.nodeListMetadataFields, isNodeListMetadataField, DEFAULT_NODE_LIST_METADATA_FIELDS)
   })
 
-  const nodeListCustomTagsVisible = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'nodeListCustomTagsVisible', true))
 
   const nodeDetailSectionTabsEnabled = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'nodeDetailSectionTabsEnabled', false))
 
-  const gpuChartEnabled = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'gpuChartEnabled', false))
 
   const detailMetricCardOrder = computed<DetailMetricCardKey[]>(() => {
     const settings = themeSettings.value
@@ -1334,9 +1256,7 @@ const useAppStore = defineStore('app', () => {
     homeQuickControlOrder,
     nodeListMetadataEnabled,
     nodeListMetadataFields,
-    nodeListCustomTagsVisible,
     nodeDetailSectionTabsEnabled,
-    gpuChartEnabled,
     detailMetricCardOrder,
     offlineNodesLast,
     homeHighLoadThreshold,

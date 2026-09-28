@@ -15,7 +15,7 @@ import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, 
 import { getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
 import { getOSImage, getOSName } from '@/utils/osImageHelper'
 import { getRegionCode, getRegionDisplayName } from '@/utils/regionHelper'
-import { formatCurrencyValue, formatPriceWithCycle, getDaysUntilExpired, getExpireStatus, getRemainingValue, isFreePrice, parseTags } from '@/utils/tagHelper'
+import { formatCurrencyValue, formatPriceWithCycle, getDaysUntilExpired, getExpireStatus, getRemainingValue, isFreePrice } from '@/utils/tagHelper'
 
 const props = withDefaults(defineProps<{
   node: NodeData
@@ -195,8 +195,7 @@ const remainingInfoTags = computed<RemainingInfoTag[]>(() => {
   return items
 })
 
-const customTags = computed(() => parseTags(props.node.tags).map(t => t.text))
-const nodeRemark = computed(() => (props.node.remark || props.node.public_remark || '').trim())
+const nodeRemark = computed(() => (props.node.remark || '').trim())
 const remarkTags = computed(() => nodeRemark.value.split(/[;；]/).map(part => part.trim()).filter(Boolean))
 
 function getRegionAltText(region: string): string {
@@ -554,17 +553,6 @@ function hasRegion(region: string | null | undefined): boolean {
               </DataTooltip>
             </div>
           </button>
-        </div>
-
-        <!-- 自定义标签 -->
-        <div v-if="customTags.length > 0" class="flex flex-wrap gap-1">
-          <Badge
-            v-for="(tag, i) in customTags" :key="i"
-            variant="outline"
-            class="!text-[11px] rounded-full text-muted-foreground border-muted-foreground/15 px-2 py-0"
-          >
-            {{ tag }}
-          </Badge>
         </div>
 
         <!-- 备注置于卡片底部；分号分隔时显示多个标签 -->

@@ -36,7 +36,6 @@ export function isNodeMatchSearch(node: NodeData, search: string): boolean {
     node.name,
     node.uuid,
     node.cpu_name,
-    node.gpu_name,
     node.os,
     node.kernel_version,
     node.virtualization,
@@ -44,8 +43,6 @@ export function isNodeMatchSearch(node: NodeData, search: string): boolean {
     node.region,
     node.group,
     ...node.groups,
-    node.tags,
-    node.public_remark,
     node.remark,
   ].map(normalizeSearchValue).filter(Boolean).join('\n')
 

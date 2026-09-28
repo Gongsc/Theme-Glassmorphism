@@ -8,7 +8,6 @@ import { useNodeProviderMetadata } from '@/composables/useNodeProviderMetadata'
 import { useAppStore } from '@/stores/app'
 import * as financeHelper from '@/utils/financeHelper'
 import { formatBytesWithConfig } from '@/utils/helper'
-import { hasFreeNodeTag } from '@/utils/tagHelper'
 
 interface NodeValueRow {
   key: string
@@ -35,7 +34,6 @@ const props = defineProps<{
 const appStore = useAppStore()
 const exchangeRates = ref(financeHelper.DEFAULT_EXCHANGE_RATES)
 const financeCurrency = ref<financeHelper.CurrencyCode>('CNY')
-const excludeFreeNodes = ref(true)
 const sortKey = ref<SortKey>('costPerCore')
 const sortDir = ref<1 | -1>(1)
 
@@ -43,21 +41,16 @@ const { getNodeProviderMetadata } = useNodeProviderMetadata({
   nodes: () => props.nodes,
   customAliases: () => appStore.providerAliases,
   enabled: () => appStore.privateFeaturesAllowed,
-  allowGeoLookup: () => appStore.privateFeaturesAllowed,
-  geoPermission: 'providerValue',
 })
 
 onMounted(async () => {
   financeCurrency.value = financeHelper.getStoredFinanceCurrency()
-  excludeFreeNodes.value = financeHelper.shouldExcludeFreeNodes()
   const { rates } = await financeHelper.getDailyExchangeRates()
   exchangeRates.value = rates
 })
 
 function shouldExcludeNode(node: NodeData): boolean {
-  if (Number(node.price) <= 0)
-    return true
-  return excludeFreeNodes.value && hasFreeNodeTag(node.tags)
+  return Number(node.price) <= 0
 }
 
 function getProviderName(node: NodeData): string {
@@ -198,7 +191,7 @@ function sortMark(key: SortKey): string {
           {{ totalComparableNodes }}
         </div>
         <div class="mt-1 text-[11px] text-muted-foreground">
-          已排除免费 / 白嫖中节点
+          已排除免费节点
         </div>
       </CardX>
       <CardX size="small" class="border-none bg-background/50">

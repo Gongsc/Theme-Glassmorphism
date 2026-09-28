@@ -84,12 +84,10 @@ export interface Client {
   cpu_physical_cores?: number
   os: string
   kernel_version: string
-  gpu_name?: string
   ipv4?: string
   ipv6?: string
   region: string
   remark?: string
-  public_remark: string
   mem_total: number
   swap_total: number
   disk_total: number
@@ -103,7 +101,6 @@ export interface Client {
   /** Hub calendar days; null means unset, undefined means legacy hub. */
   expires_in?: number | null
   group: string
-  tags: string
   hidden: boolean
   traffic_limit: number
   traffic_limit_type: string
@@ -152,26 +149,11 @@ export interface NodeStatusPing {
   max: number
 }
 
-export interface GpuDetailedInfo {
-  name?: string
-  device_name?: string
-  device_index?: number
-  memory_total?: number
-  memory_used?: number
-  utilization?: number
-  usage?: number
-  temperature?: number
-}
-
 /** 节点状态 */
 export interface NodeStatus {
   client: string
   time: string
   cpu: number
-  gpu: number
-  gpu_count?: number
-  gpu_average_usage?: number
-  gpu_detailed_info?: GpuDetailedInfo[]
   ram: number
   ram_total: number
   swap: number
@@ -179,7 +161,6 @@ export interface NodeStatus {
   load: number
   load5: number
   load15: number
-  temp: number
   disk: number
   disk_total: number
   net_in: number
@@ -204,10 +185,6 @@ export interface StatusRecord {
   client: string
   time: string
   cpu: number
-  gpu: number
-  gpu_count?: number
-  gpu_average_usage?: number
-  gpu_detailed_info?: GpuDetailedInfo[]
   ram: number
   ram_total: number
   swap: number
@@ -215,7 +192,6 @@ export interface StatusRecord {
   load: number
   load5: number
   load15: number
-  temp: number
   disk: number
   disk_total: number
   net_in: number

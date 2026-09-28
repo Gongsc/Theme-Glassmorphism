@@ -2,7 +2,6 @@ import type { Client, NodeStatus } from '@/utils/rpc'
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useAppStore } from '@/stores/app'
-import { gpuUsageFromStatus } from '@/utils/gpuHelper'
 import { parseNodeGroups } from '@/utils/groupHelper'
 
 /** 流量限制类型 */
@@ -20,12 +19,10 @@ export interface NodeData {
   cpu_physical_cores?: number
   os: string
   kernel_version: string
-  gpu_name?: string
   ipv4?: string
   ipv6?: string
   region: string
   remark?: string
-  public_remark: string
   mem_total: number
   swap_total: number
   disk_total: number
@@ -40,7 +37,6 @@ export interface NodeData {
   expires_in?: number | null
   group: string
   groups: string[]
-  tags: string
   hidden: boolean
   traffic_limit: number
   traffic_limit_type: TrafficLimitType
@@ -50,13 +46,11 @@ export interface NodeData {
   online: boolean
   time: string
   cpu: number
-  gpu: number
   ram: number
   swap: number
   load: number
   load5: number
   load15: number
-  temp: number
   disk: number
   net_in: number
   net_out: number
@@ -80,13 +74,11 @@ interface StatusData {
   online: boolean
   time: string
   cpu: number
-  gpu: number
   ram: number
   swap: number
   load: number
   load5: number
   load15: number
-  temp: number
   disk: number
   net_in: number
   net_out: number
@@ -176,12 +168,10 @@ const useNodesStore = defineStore('nodes', () => {
       cpu_physical_cores: client.cpu_physical_cores,
       os: client.os,
       kernel_version: client.kernel_version,
-      gpu_name: client.gpu_name,
       ipv4: client.ipv4,
       ipv6: client.ipv6,
       region: client.region,
       remark: client.remark,
-      public_remark: client.public_remark,
       mem_total: client.mem_total,
       swap_total: client.swap_total,
       disk_total: client.disk_total,
@@ -195,7 +185,6 @@ const useNodesStore = defineStore('nodes', () => {
       expires_in: client.expires_in,
       group: client.group,
       groups: parseNodeGroups(client.group),
-      tags: client.tags,
       hidden: client.hidden,
       traffic_limit: client.traffic_limit,
       traffic_limit_type: client.traffic_limit_type as TrafficLimitType,
@@ -205,13 +194,11 @@ const useNodesStore = defineStore('nodes', () => {
       online: false,
       time: '',
       cpu: 0,
-      gpu: 0,
       ram: 0,
       swap: 0,
       load: 0,
       load5: 0,
       load15: 0,
-      temp: 0,
       disk: 0,
       net_in: 0,
       net_out: 0,
@@ -241,9 +228,6 @@ const useNodesStore = defineStore('nodes', () => {
       node.time = status.time
     if (node.cpu !== status.cpu)
       node.cpu = status.cpu
-    const gpu = gpuUsageFromStatus(status)
-    if (node.gpu !== gpu)
-      node.gpu = gpu
     if (node.ram !== status.ram)
       node.ram = status.ram
     if (node.swap !== status.swap)
@@ -254,8 +238,6 @@ const useNodesStore = defineStore('nodes', () => {
       node.load5 = status.load5
     if (node.load15 !== status.load15)
       node.load15 = status.load15
-    if (node.temp !== status.temp)
-      node.temp = status.temp
     if (node.disk !== status.disk)
       node.disk = status.disk
     if (node.net_in !== status.net_in)
@@ -308,8 +290,6 @@ const useNodesStore = defineStore('nodes', () => {
       node.os = client.os
     if (node.kernel_version !== client.kernel_version)
       node.kernel_version = client.kernel_version
-    if (node.gpu_name !== client.gpu_name)
-      node.gpu_name = client.gpu_name
     if (node.ipv4 !== client.ipv4)
       node.ipv4 = client.ipv4
     if (node.ipv6 !== client.ipv6)
@@ -318,8 +298,6 @@ const useNodesStore = defineStore('nodes', () => {
       node.region = client.region
     if (node.remark !== client.remark)
       node.remark = client.remark
-    if (node.public_remark !== client.public_remark)
-      node.public_remark = client.public_remark
     if (node.mem_total !== client.mem_total)
       node.mem_total = client.mem_total
     if (node.swap_total !== client.swap_total)
@@ -348,8 +326,6 @@ const useNodesStore = defineStore('nodes', () => {
       if (!areStringArraysEqual(node.groups, nextGroups))
         node.groups = nextGroups
     }
-    if (node.tags !== client.tags)
-      node.tags = client.tags
     if (node.hidden !== client.hidden)
       node.hidden = client.hidden
     if (node.traffic_limit !== client.traffic_limit)

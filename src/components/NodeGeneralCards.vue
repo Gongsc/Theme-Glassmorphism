@@ -13,7 +13,6 @@ import { UI_CONFIG } from '@/constants/ui'
 import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
 import * as financeHelper from '@/utils/financeHelper'
-import { gpuUsageFromStatus } from '@/utils/gpuHelper'
 import { formatBytesPerSecondSplit, formatBytesSplit } from '@/utils/helper'
 import {
   getConnectionCount,
@@ -43,8 +42,6 @@ interface OnlineStats {
   count: number
   totalSpeed: { up: number, down: number }
   avgCpu: number
-  totalGpu: number
-  gpuNodeCount: number
   avgLoad: number
   avgLoad5: number
   avgLoad15: number
@@ -54,7 +51,6 @@ interface OnlineStats {
   trafficPeak: TopNodeMetric | null
   uploadPeakNode: TopNodeMetric | null
   downloadPeakNode: TopNodeMetric | null
-  gpuPeakNode: TopNodeMetric | null
   connectionPeakNode: TopNodeMetric | null
   highLoadNodes: NodeData[]
 }
@@ -120,18 +116,6 @@ function formatTopNodeSpeed(metric: TopNodeMetric | null, fallback = '-'): { val
     value: formatted.value,
     unit: formatted.unit,
     tooltip: `${metric.node.name}\n↑ ${formatSpeedText(metric.node.net_out || 0)}\n↓ ${formatSpeedText(metric.node.net_in || 0)}`,
-  }
-}
-
-function formatTopNodePercentage(metric: TopNodeMetric | null): { value: string, unit?: string, tooltip?: string } {
-  if (!metric)
-    return { value: '-' }
-
-  const gpuName = metric.node.gpu_name?.trim()
-  return {
-    value: formatDecimal(metric.value),
-    unit: '%',
-    tooltip: [metric.node.name, gpuName, `GPU ${formatDecimal(metric.value)}%`].filter(Boolean).join('\n'),
   }
 }
 
@@ -218,8 +202,6 @@ const onlineStats = computed<OnlineStats>(() => {
     count: 0,
     totalSpeed: { up: 0, down: 0 },
     avgCpu: 0,
-    totalGpu: 0,
-    gpuNodeCount: 0,
     avgLoad: 0,
     avgLoad5: 0,
     avgLoad15: 0,
@@ -229,7 +211,6 @@ const onlineStats = computed<OnlineStats>(() => {
     trafficPeak: null,
     uploadPeakNode: null,
     downloadPeakNode: null,
-    gpuPeakNode: null,
     connectionPeakNode: null,
     highLoadNodes: [],
   }
@@ -252,13 +233,6 @@ const onlineStats = computed<OnlineStats>(() => {
     stats.uploadPeakNode = updateTopMetric(stats.uploadPeakNode, node, node.net_out || 0)
     stats.downloadPeakNode = updateTopMetric(stats.downloadPeakNode, node, node.net_in || 0)
     stats.connectionPeakNode = updateTopMetric(stats.connectionPeakNode, node, getConnectionCount(node))
-    const gpu = gpuUsageFromStatus(node)
-    const hasGpu = Boolean(node.gpu_name?.trim()) || gpu > 0
-    if (hasGpu) {
-      stats.totalGpu += gpu
-      stats.gpuNodeCount += 1
-      stats.gpuPeakNode = updateTopMetric(stats.gpuPeakNode, node, gpu)
-    }
     if (isHighLoadNode(node, appStore.homeHighLoadThreshold))
       stats.highLoadNodes.push(node)
   }
@@ -330,12 +304,6 @@ const formattedSwapTotal = computed(() => formatBytesSplit(totalSwap.value.total
 const onlineNodeCount = computed(() => onlineStats.value.count)
 const totalNodeCount = computed(() => summaryNodes.value.length)
 const avgCpu = computed(() => onlineStats.value.avgCpu)
-const avgGpu = computed(() => onlineStats.value.gpuNodeCount > 0
-  ? onlineStats.value.totalGpu / onlineStats.value.gpuNodeCount
-  : null)
-const gpuNodes = computed(() => summaryNodes.value.filter(node => Boolean(node.gpu_name?.trim()) || (node.gpu || 0) > 0))
-const onlineGpuNodes = computed(() => gpuNodes.value.filter(node => node.online))
-const gpuPeakNode = computed(() => onlineStats.value.gpuPeakNode)
 const avgLoad = computed(() => onlineStats.value.avgLoad)
 const avgLoad5 = computed(() => onlineStats.value.avgLoad5)
 const avgLoad15 = computed(() => onlineStats.value.avgLoad15)
@@ -405,7 +373,6 @@ const totalValueTooltip = computed(() => {
 const trafficPeakCard = computed(() => formatTopNodeSpeed(trafficPeak.value))
 const uploadPeakCard = computed(() => formatTopNodeSpeed(uploadPeakNode.value))
 const downloadPeakCard = computed(() => formatTopNodeSpeed(downloadPeakNode.value))
-const gpuPeakCard = computed(() => formatTopNodePercentage(gpuPeakNode.value))
 const currentTimeText = computed(() => currentTime.value.toLocaleTimeString('zh-CN', {
   hour: '2-digit',
   minute: '2-digit',
@@ -503,15 +470,6 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
         value: formatDecimal(avgCpu.value),
         unit: '%',
       }
-    case 'avgGpu':
-      return {
-        key: 'avgGpu',
-        label: '平均 GPU',
-        icon: 'tabler:device-desktop-analytics',
-        value: avgGpu.value === null ? '-' : formatDecimal(avgGpu.value),
-        unit: avgGpu.value === null ? undefined : '%',
-        tooltip: formatNodeNames(onlineGpuNodes.value, node => `${node.name}: ${formatDecimal(node.gpu || 0)}%`),
-      }
     case 'avgLoad':
       return {
         key: 'avgLoad',
@@ -550,24 +508,6 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
         icon: 'tabler:chip',
         value: formatCount(totalCpuCores.value),
         unit: 'Core',
-      }
-    case 'gpuNodes':
-      return {
-        key: 'gpuNodes',
-        label: 'GPU 节点',
-        icon: 'tabler:device-imac',
-        value: formatCount(gpuNodes.value.length),
-        unit: `/ ${formatCount(totalNodeCount.value)}`,
-        tooltip: formatNodeNames(gpuNodes.value, node => `${node.name}: ${node.gpu_name?.trim() || 'GPU'}`),
-      }
-    case 'gpuPeakNode':
-      return {
-        key: 'gpuPeakNode',
-        label: 'GPU 峰值',
-        icon: 'tabler:chart-histogram',
-        value: gpuPeakCard.value.value,
-        unit: gpuPeakCard.value.unit,
-        tooltip: gpuPeakCard.value.tooltip,
       }
     case 'trafficQuota':
       return {

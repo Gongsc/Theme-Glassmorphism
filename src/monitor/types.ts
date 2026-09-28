@@ -60,6 +60,9 @@ export type Node = {
   /** Panel only. */
   hostname?: string
   ip?: string
+  ipv4?: string
+  ipv6?: string
+  /** Hub-selected display addresses, at most one per family, v4 first. */
+  addresses?: { address: string, source: string }[]
   remark?: string
-  public_remark?: string
 }

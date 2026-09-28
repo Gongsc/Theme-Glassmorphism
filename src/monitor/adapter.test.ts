@@ -21,8 +21,17 @@ assert.equal(offline.status.online,false); assert.equal(offline.status.net_in,0)
 assert.equal(offline.status.net_total_down,1800)
 assert.equal(mapNode({...node,billing_cycle:'once'}).client.billing_cycle,-1)
 assert.equal(mapNode({...node,remark:'主节点；高带宽'}).client.remark,'主节点；高带宽')
-assert.equal(mapNode({...node,public_remark:'公开节点'}).client.public_remark,'公开节点')
-assert.equal('ipv4' in client,false)
+assert.equal('ipv4' in client,false); assert.equal('ipv6' in client,false)
+const panel = mapNode({...node,ipv4:'10.0.0.2',ipv6:'',addresses:[{address:'203.0.113.7',source:'interface'},{address:'2001:db8::7',source:'manual'}]}).client
+assert.equal(panel.ipv4,'203.0.113.7'); assert.equal(panel.ipv6,'2001:db8::7')
+// 旧版 Hub 没有 addresses：网卡公网地址优先，NAT 后的内网地址换成连接来源，全是内网时照常显示
+assert.equal(mapNode({...node,ipv4:'198.51.100.3',ipv6:''}).client.ipv4,'198.51.100.3')
+assert.equal('ipv6' in mapNode({...node,ipv4:'198.51.100.3',ipv6:''}).client,false)
+assert.equal(mapNode({...node,ip:'203.0.113.9',ipv4:'10.0.0.5',ipv6:''}).client.ipv4,'203.0.113.9')
+const natV6 = mapNode({...node,ip:'2001:db8::9',ipv4:'10.0.0.5',ipv6:'2001:db8::5'}).client
+assert.equal('ipv4' in natV6,false); assert.equal(natV6.ipv6,'2001:db8::5')
+assert.equal(mapNode({...node,ip:'192.168.1.2',ipv4:'192.168.1.5',ipv6:''}).client.ipv4,'192.168.1.5')
+assert.equal(mapNode({...node,ip:'203.0.113.9'}).client.ipv4,'203.0.113.9')
 console.log('Monitor mapping: identity, billing, live metrics, offline state, monthly/total traffic and public metadata passed')
 
 // Contract test: history is obtained exclusively from Monitor REST endpoints.

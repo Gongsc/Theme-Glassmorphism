@@ -68,7 +68,6 @@ export interface NodeInfo {
   cpu_physical_cores?: number
   os: string
   kernel_version: string
-  gpu_name: string
   region: string
   mem_total: number
   swap_total: number
@@ -82,8 +81,6 @@ export interface NodeInfo {
   /** Hub calendar days; null means unset, undefined means legacy hub. */
   expires_in?: number | null
   group: string
-  tags: string
-  public_remark: string
   hidden: boolean
   traffic_limit: number
   traffic_limit_type: string
@@ -143,13 +140,11 @@ export interface LoadRecord {
   client: string
   time: string
   cpu: number
-  gpu: number
   ram: number
   ram_total: number
   swap: number
   swap_total: number
   load: number
-  temp: number
   disk: number
   disk_total: number
   net_in: number

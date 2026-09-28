@@ -15,15 +15,13 @@ import { LOAD_RECORD_MAX_COUNT } from '@/constants/load'
 import { loadNodeLoadRecords } from '@/services/history.service'
 import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
-import { formatCityNameZh } from '@/utils/cityNameHelper'
 import { getCpuBenchmarkRating, getPassMarkCpuLookupUrl } from '@/utils/cpuBenchmark'
 import * as financeHelper from '@/utils/financeHelper'
-import { gpuUsageFromStatus } from '@/utils/gpuHelper'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatUptimeWithFormat } from '@/utils/helper'
 import { getOSImage, getOSName } from '@/utils/osImageHelper'
 import { getRegionCode, getRegionDisplayName } from '@/utils/regionHelper'
 
-import { formatPrice, formatPriceWithCycle, getExpireStatus, getExpireText, isFreePrice, parseTags } from '@/utils/tagHelper'
+import { formatPrice, formatPriceWithCycle, getExpireStatus, getExpireText, isFreePrice } from '@/utils/tagHelper'
 
 const LoadChart = defineAsyncComponent(() => import('@/components/LoadChart.vue'))
 const PingChart = defineAsyncComponent(() => import('@/components/PingChart.vue'))
@@ -51,8 +49,6 @@ const { getNodeProviderMetadata } = useNodeProviderMetadata({
   nodes: () => data.value ? [data.value] : [],
   customAliases: () => appStore.providerAliases,
   enabled: () => Boolean(data.value),
-  allowGeoLookup: () => appStore.privateFeaturesAllowed,
-  geoPermission: 'providerGeoLookup',
 })
 
 async function loadTrafficPeakRecords(uuid: string): Promise<Array<{ net_in?: number, net_out?: number }>> {
@@ -146,23 +142,10 @@ function toggleCurrentFavorite(): void {
     appStore.toggleFavoriteNode(data.value.uuid)
 }
 
-// 机房/厂商展示：城市 · 厂商 · ASN（缺项自动省略）
+// 厂商展示：Monitor 不提供城市与 ASN，只按名称和备注识别厂商
 const providerMetadata = computed(() => data.value ? getNodeProviderMetadata(data.value) : null)
 const vpsProvider = computed(() => providerMetadata.value?.provider ?? null)
-const providerDisplay = computed(() => {
-  const parts: string[] = []
-  const cityName = formatCityNameZh(providerMetadata.value?.geo?.city)
-  if (cityName)
-    parts.push(cityName)
-  if (providerMetadata.value?.provider?.displayName)
-    parts.push(providerMetadata.value.provider.displayName)
-  if (providerMetadata.value?.geo?.asn)
-    parts.push(providerMetadata.value.geo.asn)
-  return parts.length ? parts.join(' · ') : '-'
-})
-
-// 节点自定义标签
-const customTags = computed(() => parseTags(data.value?.tags).map(t => t.text))
+const providerDisplay = computed(() => providerMetadata.value?.provider?.displayName || '-')
 
 // 该节点支持的 IP 协议（仅显示"支持"，不暴露具体 IP）
 const ipSupport = computed(() => {
@@ -340,11 +323,6 @@ function getDetailMetricCard(key: DetailMetricCardKey): MetricCard {
       return { key, label: '剩余价值', value: masked ? '***' : remainingValue.value, unit: masked ? undefined : remainingValue.unit, icon: 'tabler:coins' }
     case 'cpuUsage':
       return { key, label: 'CPU 使用率', value: (node?.cpu ?? 0).toFixed(1), unit: '%', icon: 'tabler:cpu' }
-    case 'gpuUsage': {
-      const gpu = gpuUsageFromStatus(node)
-      const hasGpu = Boolean(node?.gpu_name?.trim()) || gpu > 0
-      return { key, label: 'GPU 使用率', value: hasGpu ? gpu.toFixed(1) : '-', unit: hasGpu ? '%' : undefined, icon: 'tabler:device-desktop-analytics', tooltip: node?.gpu_name?.trim() || undefined }
-    }
     case 'memoryUsage':
       return { key, label: '内存使用率', value: memoryUsage === null ? '-' : memoryUsage.toFixed(1), unit: memoryUsage === null ? undefined : '%', icon: 'icon-park-outline:memory', tooltip: `${formatBytes(node?.ram ?? 0)} / ${formatBytes(node?.mem_total ?? 0)}` }
     case 'swapUsage':
@@ -353,10 +331,6 @@ function getDetailMetricCard(key: DetailMetricCardKey): MetricCard {
       return { key, label: '硬盘使用率', value: diskUsage === null ? '-' : diskUsage.toFixed(1), unit: diskUsage === null ? undefined : '%', icon: 'tabler:server-2', tooltip: `${formatBytes(node?.disk ?? 0)} / ${formatBytes(node?.disk_total ?? 0)}` }
     case 'load':
       return { key, label: '系统负载', value: (node?.load ?? 0).toFixed(2), unit: '1m', icon: 'tabler:chart-line', tooltip: `5m ${(node?.load5 ?? 0).toFixed(2)} / 15m ${(node?.load15 ?? 0).toFixed(2)}` }
-    case 'temperature': {
-      const temperature = node?.temp ?? 0
-      return { key, label: '系统温度', value: temperature > 0 ? temperature.toFixed(1) : '-', unit: temperature > 0 ? '°C' : undefined, icon: 'tabler:temperature' }
-    }
     case 'processes':
       return { key, label: '进程数', value: Math.round(node?.process ?? 0).toLocaleString('zh-CN'), icon: 'tabler:list-numbers' }
     case 'connections':
@@ -390,17 +364,11 @@ function getDetailMetricCard(key: DetailMetricCardKey): MetricCard {
 }
 
 // 硬件信息小卡：CPU 单独全宽展示，这里是其余小格。
-// - 「架构」格：登录后改显节点 IP（避免未登录访客扫到 IP），未登录或无 IP 时回退显示架构
-// - GPU：仅在节点确实有 GPU 时才显示
 const hardwareSmallItems = computed<InfoItem[]>(() => {
   const node = data.value
   const items: InfoItem[] = []
 
-  const ip = node?.ipv4 || node?.ipv6
-  if (appStore.privateFeaturesAllowed && ip)
-    items.push({ label: 'IP', value: ip, icon: 'tabler:world' })
-  else
-    items.push({ label: '架构', value: node?.arch ?? '-', icon: 'icon-park-outline:application-two' })
+  items.push({ label: '架构', value: node?.arch ?? '-', icon: 'icon-park-outline:application-two' })
 
   const physicalCores = node?.cpu_physical_cores
   if (typeof physicalCores === 'number' && physicalCores > 0)
@@ -408,11 +376,18 @@ const hardwareSmallItems = computed<InfoItem[]>(() => {
 
   items.push({ label: '虚拟化', value: node?.virtualization ?? '-', icon: 'icon-park-outline:server' })
 
-  const gpu = node?.gpu_name?.trim()
-  if (gpu && gpu.toLowerCase() !== 'none')
-    items.push({ label: 'GPU', value: gpu, icon: 'icon-park-outline:video-one' })
-
   return items
+})
+
+// 网络信息里的地址：Hub 只在登录后返回，未登录时不显示
+const networkAddressItems = computed<InfoItem[]>(() => {
+  const node = data.value
+  if (!appStore.privateFeaturesAllowed || !node)
+    return []
+  return [
+    ...(node.ipv4 ? [{ label: 'IPv4', value: node.ipv4, icon: 'tabler:world' }] : []),
+    ...(node.ipv6 ? [{ label: 'IPv6', value: node.ipv6, icon: 'tabler:world' }] : []),
+  ]
 })
 
 const systemInfo = computed<InfoItem[]>(() => [
@@ -504,15 +479,6 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
         <Badge :variant="data.online ? 'default' : 'destructive'" class="text-xs !rounded">
           {{ data.online ? '在线' : '离线' }}
         </Badge>
-        <!-- 节点自定义标签 -->
-        <div v-if="customTags.length" class="flex flex-wrap gap-1">
-          <Badge
-            v-for="(tag, i) in customTags" :key="i" variant="outline"
-            class="!text-[11px] rounded text-muted-foreground border-muted-foreground/15 px-1.5 py-0"
-          >
-            {{ tag }}
-          </Badge>
-        </div>
         <div class="ml-auto flex h-8 shrink-0 items-center gap-1 rounded-md bg-background/50 p-0.5 backdrop-blur-xs">
           <Button
             variant="ghost" size="icon-sm"
@@ -652,7 +618,7 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
               </div>
             </div>
 
-            <!-- IP/架构 · 虚拟化 · GPU(仅在存在时)，列数随数量自适应避免留空，整体撑满高度 -->
+            <!-- 架构 · 物理核心(仅在存在时) · 虚拟化，列数随数量自适应避免留空，整体撑满高度 -->
             <div class="grid gap-3 flex-1 auto-rows-fr" :class="hardwareSmallItems.length <= 2 ? 'grid-cols-2' : 'grid-cols-3'">
               <div
                 v-for="item in hardwareSmallItems" :key="item.label"
@@ -759,6 +725,17 @@ const metricCards = computed<MetricCard[]>(() => appStore.detailMetricCardOrder.
                 <Icon icon="tabler:chevron-down" width="12" height="12" />
                 {{ formatBytesPerSecond(data?.net_in ?? 0) }}
               </span>
+            </div>
+            <div
+              v-for="item in networkAddressItems" :key="item.label"
+              class="min-w-0 flex flex-col gap-1 rounded-sm bg-slate-500/5 p-2"
+              :class="networkAddressItems.length === 1 && 'col-span-2'"
+            >
+              <div class="flex gap-1 items-center text-muted-foreground">
+                <Icon v-if="item.icon" :icon="item.icon" :width="14" :height="14" />
+                <span class="text-xs sm:text-sm">{{ item.label }}</span>
+              </div>
+              <span class="text-xs sm:text-sm font-mono break-all select-all">{{ item.value }}</span>
             </div>
           </div>
         </CardX>

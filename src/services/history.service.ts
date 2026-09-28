@@ -1,7 +1,6 @@
 import type { PingRecord, PingTaskInfo, StatusRecord } from '@/utils/rpc'
 import { requestManager } from '@/services/request.service'
 import { ApiError, getSharedApi } from '@/utils/api'
-import { gpuUsageFromStatus } from '@/utils/gpuHelper'
 import { getSharedRpc, RpcError } from '@/utils/rpc'
 
 function numberOrMissing(value: unknown): number {
@@ -85,9 +84,6 @@ export function normalizeStatusRecord(record: Partial<StatusRecord>): StatusReco
     client: record.client,
     time: record.time,
     cpu: numberOrZero(record.cpu),
-    gpu: gpuUsageFromStatus(record),
-    gpu_average_usage: gpuUsageFromStatus(record),
-    gpu_detailed_info: record.gpu_detailed_info,
     ram: numberOrZero(record.ram),
     ram_total: numberOrZero(record.ram_total),
     swap: numberOrMissing(record.swap),
@@ -95,7 +91,6 @@ export function normalizeStatusRecord(record: Partial<StatusRecord>): StatusReco
     load: numberOrMissing(record.load),
     load5: numberOrMissing(record.load5 ?? record.load),
     load15: numberOrMissing(record.load15 ?? record.load5 ?? record.load),
-    temp: numberOrMissing(record.temp),
     disk: numberOrZero(record.disk),
     disk_total: numberOrZero(record.disk_total),
     net_in: numberOrZero(record.net_in),

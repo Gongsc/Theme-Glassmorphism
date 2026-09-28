@@ -345,12 +345,8 @@ export function isFreePrice(price: number): boolean {
   return price === -1
 }
 
-export function hasFreeNodeTag(tags: string | undefined): boolean {
-  return parseTags(tags).some(tag => tag.text === '白嫖中')
-}
-
-export function isFreeNode(node: { price: number, tags?: string }): boolean {
-  return isFreePrice(node.price) || hasFreeNodeTag(node.tags)
+export function isFreeNode(node: { price: number }): boolean {
+  return isFreePrice(node.price)
 }
 
 /**

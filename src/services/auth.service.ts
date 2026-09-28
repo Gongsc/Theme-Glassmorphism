@@ -8,10 +8,8 @@ export type PermissionKey
     | 'snapshotExport'
     | 'healthSummary'
     | 'providerValue'
-    | 'nodeTopology'
     | 'auditLog'
     | 'diskPrediction'
-    | 'providerGeoLookup'
 
 export interface AuthSession {
   status: AuthStatus

@@ -5,42 +5,17 @@
 
 import dayjs from 'dayjs'
 
-/** 负载记录格式 */
+/** 负载记录格式：Monitor 历史接口提供的字段 */
 export interface RecordFormat {
   client: string
   time: string
   cpu: number | null
-  gpu: number | null
-  gpu_usage: number | null
-  gpu_memory: number | null
-  gpu_detailed?: {
-    [index: number]: {
-      usage: number | null
-      memory: number | null
-      temperature: number | null
-      device_index?: number
-      device_name?: string
-      mem_total?: number
-      mem_used?: number
-    }
-  }
   ram: number | null
   ram_total: number | null
-  swap: number | null
-  swap_total: number | null
-  load: number | null
-  temp: number | null
   disk: number | null
   disk_total: number | null
   net_in: number | null
   net_out: number | null
-  net_total_up: number | null
-  net_total_down: number | null
-  traffic_up: number | null
-  traffic_down: number | null
-  process: number | null
-  connections: number | null
-  connections_udp: number | null
 }
 
 type AnyRecord = Record<string, any>

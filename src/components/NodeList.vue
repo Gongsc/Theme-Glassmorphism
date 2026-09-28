@@ -12,12 +12,11 @@ import { ProgressThin } from '@/components/ui/progress-thin'
 import { useNodeProviderMetadata } from '@/composables/useNodeProviderMetadata'
 import { UI_CONFIG } from '@/constants/ui'
 import { useAppStore } from '@/stores/app'
-import { formatCityNameZh } from '@/utils/cityNameHelper'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, formatUptimeWithFormat, getStatus } from '@/utils/helper'
 import { getRealtimeTotalSpeed, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
 import { getOSImage, getOSName } from '@/utils/osImageHelper'
 import { getRegionCode, getRegionDisplayName } from '@/utils/regionHelper'
-import { formatPriceWithCycle, getDaysUntilExpired, getExpireStatus, parseTags } from '@/utils/tagHelper'
+import { formatPriceWithCycle, getDaysUntilExpired, getExpireStatus } from '@/utils/tagHelper'
 
 interface ColumnConfig {
   key: string
@@ -77,15 +76,13 @@ const baseColumns: ColumnConfig[] = [
 const columns = computed(() => baseColumns.filter(col => col.key !== 'metadata' || appStore.nodeListMetadataEnabled))
 const providerMetadataEnabled = computed(() => {
   return appStore.nodeListMetadataEnabled
-    && appStore.nodeListMetadataFields.some(field => field === 'provider' || field === 'city' || field === 'asn')
+    && appStore.nodeListMetadataFields.includes('provider')
 })
 
 const { getNodeProviderMetadata } = useNodeProviderMetadata({
   nodes: () => props.nodes,
   customAliases: () => appStore.providerAliases,
   enabled: () => providerMetadataEnabled.value,
-  allowGeoLookup: () => appStore.privateFeaturesAllowed,
-  geoPermission: 'providerGeoLookup',
 })
 
 const sortKey = ref<string>('')
@@ -321,54 +318,6 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
           title: displayName,
           variant: 'outline',
           class: 'max-w-[8rem] bg-background/45 text-foreground/80 border-border/60',
-        })
-        break
-      }
-      case 'city': {
-        const city = providerMetadata?.geo?.city
-        const cityName = formatCityNameZh(city)
-        if (!cityName)
-          break
-
-        items.push({
-          key: 'city',
-          value: cityName,
-          icon: 'tabler:map-pin',
-          title: [cityName, providerMetadata?.geo?.countryCode].filter(Boolean).join(' · '),
-          variant: 'outline',
-          class: 'max-w-[8rem] bg-background/45 text-foreground/80 border-border/60',
-        })
-        break
-      }
-      case 'asn': {
-        const asn = providerMetadata?.geo?.asn
-        if (!asn)
-          break
-
-        items.push({
-          key: 'asn',
-          value: asn,
-          icon: 'tabler:network',
-          title: providerMetadata?.geo?.org ? `${asn}\n${providerMetadata.geo.org}` : asn,
-          variant: 'outline',
-          class: 'max-w-[7rem] bg-info/10 text-info border-info/25 font-mono',
-        })
-        break
-      }
-      case 'tags': {
-        if (!appStore.nodeListCustomTagsVisible)
-          break
-
-        parseTags(node.tags).forEach((tag, index) => {
-          items.push({
-            key: `tag-${index}-${tag.text}`,
-            value: tag.text,
-            title: tag.text,
-            icon: 'tabler:tag',
-            variant: 'outline',
-            class: 'max-w-[8rem] bg-background/45 text-foreground/80 border-border/60',
-            style: tag.hex ? { borderColor: `${tag.hex}66`, color: tag.hex } : undefined,
-          })
         })
         break
       }
