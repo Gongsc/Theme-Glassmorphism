@@ -25,7 +25,8 @@ export function mappedNodes(nodes: Node[]) {
   const entries = nodes.map(mapNode)
   return { clients: Object.fromEntries(entries.map(n => [n.client.uuid, n.client])), statuses: Object.fromEntries(entries.map(n => [n.client.uuid, n.status])) }
 }
-type History = { metrics: { ts: number; cpu: number; mem_used: number; disk_used: number; net_rx: number; net_tx: number }[]; ping: { ts: number; task_id: number; latency: number | null; loss?: number }[]; probes: Record<string,string>; loss?: Record<string,number> }
+// net_rx_max / net_tx_max：桶内最高速率（较新的 Hub 才返回），net_rx / net_tx 是桶内平均
+type History = { metrics: { ts: number; cpu: number; mem_used: number; disk_used: number; net_rx: number; net_tx: number; net_rx_max?: number; net_tx_max?: number }[]; ping: { ts: number; task_id: number; latency: number | null; loss?: number }[]; probes: Record<string,string>; loss?: Record<string,number> }
 async function history(id: string, hours: number, series: string, points = 600) {
   if (!/^\d+$/.test(id)) throw new Error('无效节点编号')
   const path = `/nodes/${id}/metrics?${new URLSearchParams({ hours: String(hours), points: String(points), series })}`
@@ -56,7 +57,7 @@ export async function records(params: Record<string, unknown>, ping = false) {
         return {id:Number(id), name, interval:60, loss:h.loss?.[id] ?? 0, clients:[String(n.id)], avg: values.length ? values.reduce((a,b)=>a+b,0)/values.length : undefined, min: values.length ? Math.min(...values) : undefined, max: values.length ? Math.max(...values) : undefined}
       }),
     }
-    return { records: h.metrics.map(p => ({ client:String(n.id), time:new Date(p.ts*1000).toISOString(), cpu:p.cpu, ram:p.mem_used, ram_total:n.mem_total, disk:p.disk_used, disk_total:n.disk_total, net_in:p.net_rx, net_out:p.net_tx })) }
+    return { records: h.metrics.map(p => ({ client:String(n.id), time:new Date(p.ts*1000).toISOString(), cpu:p.cpu, ram:p.mem_used, ram_total:n.mem_total, disk:p.disk_used, disk_total:n.disk_total, net_in:p.net_rx, net_out:p.net_tx, ...(p.net_rx_max == null ? {} : {net_in_peak:p.net_rx_max}), ...(p.net_tx_max == null ? {} : {net_out_peak:p.net_tx_max}) })) }
   })
   const all = result.flatMap<Record<string, unknown>>(r => r.records)
   return { records: all, count: all.length, tasks: result.flatMap(r => 'tasks' in r ? r.tasks ?? [] : []) }

@@ -227,6 +227,8 @@ function statusToRecordFormat(records: StatusRecord[]): RecordFormat[] {
     disk_total: metricValue(r.disk_total),
     net_in: metricValue(r.net_in),
     net_out: metricValue(r.net_out),
+    net_in_peak: metricValue(r.net_in_peak),
+    net_out_peak: metricValue(r.net_out_peak),
   }))
 }
 
@@ -627,14 +629,24 @@ const diskChartOption = computed(() => ({
   ],
 }))
 
+// 较新的 Hub 为每个时间桶返回最高速率：长时间段的平均值会抹平突发，峰值用虚线补上
+const hasNetworkPeak = computed(() => chartData.value.some(r => r.net_in_peak != null || r.net_out_peak != null))
+
+const NETWORK_SERIES_LABELS: Record<string, string> = {
+  下载: '↓ 下载',
+  上传: '↑ 上传',
+  下载峰值: '↓ 峰值',
+  上传峰值: '↑ 峰值',
+}
+
 // 网络图表
 const networkChartOption = computed(() => ({
   animation: false,
-  color: [chartColors.quinary, chartColors.quaternary],
+  color: [chartColors.quinary, chartColors.quaternary, chartColors.quinary, chartColors.quaternary],
   tooltip: {
     ...baseTooltipConfig.value,
     formatter: (params: unknown) => {
-      const p = params as Array<{ dataIndex: number, seriesName: string, value: number, color: string }>
+      const p = params as Array<{ dataIndex: number, seriesName: string, value: number | null, color: string }>
       if (!p.length)
         return ''
       const firstParam = p[0]
@@ -649,8 +661,10 @@ const networkChartOption = computed(() => ({
       html += '<div style="display:flex;flex-direction:column;gap:4px">'
 
       for (const item of p) {
+        if (item.value == null)
+          continue
         const colorDot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${item.color};margin-right:8px;flex-shrink:0"></span>`
-        const label = item.seriesName === '下载' ? '↓ 下载' : '↑ 上传'
+        const label = NETWORK_SERIES_LABELS[item.seriesName] ?? item.seriesName
         html += `<div style="display:flex;align-items:center">${colorDot}<span>${label}</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${formatBytes(item.value)}/s</span></div>`
       }
       html += '</div>'
@@ -658,7 +672,7 @@ const networkChartOption = computed(() => ({
     },
   },
   legend: {
-    data: ['下载', '上传'],
+    data: hasNetworkPeak.value ? ['下载', '上传', '下载峰值', '上传峰值'] : ['下载', '上传'],
     bottom: 4,
     itemWidth: 12,
     itemHeight: 12,
@@ -694,6 +708,24 @@ const networkChartOption = computed(() => ({
       showSymbol: false,
       lineStyle: { width: 1.5, color: chartColors.quaternary, cap: 'round' as const },
     },
+    ...(hasNetworkPeak.value
+      ? [
+          {
+            name: '下载峰值',
+            type: 'line',
+            data: chartData.value.map(r => r.net_in_peak),
+            showSymbol: false,
+            lineStyle: { width: 1, type: 'dashed' as const, opacity: 0.6, color: chartColors.quinary, cap: 'round' as const },
+          },
+          {
+            name: '上传峰值',
+            type: 'line',
+            data: chartData.value.map(r => r.net_out_peak),
+            showSymbol: false,
+            lineStyle: { width: 1, type: 'dashed' as const, opacity: 0.6, color: chartColors.quaternary, cap: 'round' as const },
+          },
+        ]
+      : []),
   ],
 }))
 

@@ -51,7 +51,7 @@ const { getNodeProviderMetadata } = useNodeProviderMetadata({
   enabled: () => Boolean(data.value),
 })
 
-async function loadTrafficPeakRecords(uuid: string): Promise<Array<{ net_in?: number, net_out?: number }>> {
+async function loadTrafficPeakRecords(uuid: string): Promise<Array<{ net_in?: number, net_out?: number, net_in_peak?: number, net_out_peak?: number }>> {
   if (!appStore.privateFeaturesAllowed)
     return []
 
@@ -63,7 +63,7 @@ async function loadTrafficPeakRecords(uuid: string): Promise<Array<{ net_in?: nu
   }
 }
 
-// 拉取近一天负载记录，统计网速峰值（上/下行各自取最大瞬时值）
+// 拉取近一天负载记录，统计网速峰值（上/下行各自取最大值；较新的 Hub 提供桶内峰值时优先使用）
 async function fetchTrafficPeak(uuid: string): Promise<void> {
   const seq = ++trafficPeakSeq
   peakNetOut.value = 0
@@ -75,11 +75,14 @@ async function fetchTrafficPeak(uuid: string): Promise<void> {
 
   let up = 0
   let down = 0
+  const rate = (peak: number | undefined, mean: number | undefined) => typeof peak === 'number' && Number.isFinite(peak) ? peak : mean ?? Number.NaN
   for (const r of records) {
-    if (typeof r.net_out === 'number' && r.net_out > up)
-      up = r.net_out
-    if (typeof r.net_in === 'number' && r.net_in > down)
-      down = r.net_in
+    const out = rate(r.net_out_peak, r.net_out)
+    const inbound = rate(r.net_in_peak, r.net_in)
+    if (Number.isFinite(out) && out > up)
+      up = out
+    if (Number.isFinite(inbound) && inbound > down)
+      down = inbound
   }
   peakNetOut.value = up
   peakNetIn.value = down

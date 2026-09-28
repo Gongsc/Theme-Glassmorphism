@@ -95,6 +95,8 @@ export function normalizeStatusRecord(record: Partial<StatusRecord>): StatusReco
     disk_total: numberOrZero(record.disk_total),
     net_in: numberOrZero(record.net_in),
     net_out: numberOrZero(record.net_out),
+    net_in_peak: numberOrMissing(record.net_in_peak),
+    net_out_peak: numberOrMissing(record.net_out_peak),
     net_total_up: numberOrMissing(record.net_total_up),
     net_total_down: numberOrMissing(record.net_total_down),
     traffic_up: numberOrMissing(record.traffic_up),

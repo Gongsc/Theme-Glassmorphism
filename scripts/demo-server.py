@@ -18,7 +18,7 @@ class Handler(BaseHTTPRequestHandler):
                     nodes[-1].update(ip=f'203.0.113.{i+10}', ipv4=f'203.0.113.{i+10}', ipv6=f'2001:db8::{i+10:x}' if i % 2 == 0 else '')
             data = dict(nodes=nodes)
         elif '/metrics' in self.path:
-            data = dict(metrics=[dict(ts=now-(59-i)*60,cpu=30+15*math.sin(i/5),mem_used=3*G,disk_used=20*G,net_rx=800000+300000*math.sin(i/4),net_tx=300000) for i in range(60)],ping=[dict(task_id=task,ts=now-(59-i)*60,latency=base+8*math.sin(i/5),loss=0) for task,base in [(1,165),(2,157),(3,132)] for i in range(60)],probes={'1':'浙江电信','2':'浙江联通','3':'浙江移动'},loss={})
+            data = dict(metrics=[dict(ts=now-(59-i)*60,cpu=30+15*math.sin(i/5),mem_used=3*G,disk_used=20*G,net_rx=800000+300000*math.sin(i/4),net_tx=300000,net_rx_max=int(1400000+900000*abs(math.sin(i/3))),net_tx_max=int(450000+250000*abs(math.cos(i/4)))) for i in range(60)],ping=[dict(task_id=task,ts=now-(59-i)*60,latency=base+8*math.sin(i/5),loss=0) for task,base in [(1,165),(2,157),(3,132)] for i in range(60)],probes={'1':'浙江电信','2':'浙江联通','3':'浙江移动'},loss={})
         else:
             self.send_error(404); return
         self.send_response(200); self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(json.dumps(data).encode())

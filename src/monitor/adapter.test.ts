@@ -42,7 +42,7 @@ const requests: string[] = []
 globalThis.fetch = (async (url: string | URL | Request) => {
   requests.push(String(url))
   return new Response(JSON.stringify({
-    metrics: [{ts:1700000000,cpu:25,mem_used:200,disk_used:500,net_rx:120,net_tx:60}],
+    metrics: [{ts:1700000000,cpu:25,mem_used:200,disk_used:500,net_rx:120,net_tx:60,net_rx_max:480,net_tx_max:90},{ts:1700000060,cpu:25,mem_used:200,disk_used:500,net_rx:100,net_tx:50}],
     ping: [{ts:1700000000,task_id:1,latency:20,loss:50},{ts:1700000060,task_id:1,latency:null,loss:100}],
     probes: {'1':'Probe'}, loss: {'1':7.69},
   }),{status:200,headers:{'content-type':'application/json'}})
@@ -54,11 +54,13 @@ try {
   assert.equal(ping.tasks[0]?.loss,7.69)
   const history = await records({uuid:'7',hours:1})
   assert.equal(history.records[0]?.net_in,120)
+  assert.equal(history.records[0]?.net_in_peak,480); assert.equal(history.records[0]?.net_out_peak,90)
+  assert.equal('net_in_peak' in history.records[1]!,false)
   assert.equal('net_total_up' in history.records[0]!,false)
   assert.ok(requests.every(url => url.startsWith('/api/nodes/7/metrics?')))
   await assert.rejects(dispatch('admin:getLogs'), /Monitor 不提供/)
 } finally {globalThis.fetch = oldFetch}
-console.log('Monitor history: endpoints, timeout samples, exact window loss and missing historical metrics passed')
+console.log('Monitor history: endpoints, timeout samples, exact window loss and missing historical metrics and bucket peaks passed')
 
 // The hub's calendar is authoritative, even when the browser date disagrees.
 const { getDaysUntilExpired, getExpireStatus, getExpireText, getRemainingValue } = await import('../utils/tagHelper.ts')

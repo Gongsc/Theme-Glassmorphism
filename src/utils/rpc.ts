@@ -196,6 +196,9 @@ export interface StatusRecord {
   disk_total: number
   net_in: number
   net_out: number
+  /** 桶内最高速率；旧版 Hub 不提供 */
+  net_in_peak?: number
+  net_out_peak?: number
   net_total_up: number
   net_total_down: number
   traffic_up?: number
