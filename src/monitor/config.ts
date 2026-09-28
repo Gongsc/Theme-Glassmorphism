@@ -1,4 +1,5 @@
 import manifest from '../../theme.json' with { type: 'json' }
+import { isValidSiteIconSetting } from './siteIcon.ts'
 
 export interface ConfigField {
   key?: string
@@ -23,7 +24,16 @@ function configObject(input: unknown): Record<string, unknown> {
   return input as Record<string, unknown>
 }
 
+// 类型之外还需校验内容的字段；不合规的已保存值与其他字段一样回退到默认值。
+const contentChecks: Record<string, (value: unknown) => boolean> = {
+  siteIconUrl: isValidSiteIconSetting,
+}
+
 export function fitsConfigField(field: ConfigField, value: unknown): boolean {
+  return fitsFieldType(field, value) && (!field.key || !contentChecks[field.key] || contentChecks[field.key]!(value))
+}
+
+function fitsFieldType(field: ConfigField, value: unknown): boolean {
   switch (field.type) {
     case 'boolean': return typeof value === 'boolean'
     case 'number': return typeof value === 'number' && Number.isFinite(value)

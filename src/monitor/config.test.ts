@@ -24,12 +24,17 @@ try {
   assert.equal(new Set(fields.map(f => f.key)).size, fields.length)
   assert.ok(fields.every(f => f.key && fitsConfigField(f, f.default)))
   assert.ok(!fields.some(f => ['rpcTransportMode', 'exportSecondaryPassword'].includes(f.key!)))
-  saved = { alertTitle: 'Hub 公告', hideEarth: true, backgroundOverlay: 0, homepageMultiPingCount: 999, backgroundType: 'invalid', otherVersion: 'keep' }
+  saved = { alertTitle: 'Hub 公告', hideEarth: true, backgroundOverlay: 0, homepageMultiPingCount: 999, backgroundType: 'invalid', siteIconUrl: 'javascript:alert(1)', otherVersion: 'keep' }
   const loaded = await loadConfig()
   assert.equal(loaded.alertTitle, 'Hub 公告')
   assert.equal(loaded.hideEarth, true)
   assert.equal(loaded.homepageMultiPingCount, defaultConfig.homepageMultiPingCount)
   assert.equal(loaded.backgroundType, defaultConfig.backgroundType)
+  assert.equal(loaded.siteIconUrl, '')
+  saved = { siteIconUrl: 'https://cdn.example.com/icon.png' }
+  assert.equal((await loadConfig()).siteIconUrl, 'https://cdn.example.com/icon.png')
+  saved = { alertTitle: 'Hub 公告', otherVersion: 'keep' }
+  await loadConfig()
   assert.equal('otherVersion' in loaded, false)
   assert.ok(requests.every(r => r.url === '/api/themes/glassmorphism/config'))
   assert.ok(requests.every(r => r.init?.credentials === 'same-origin'))

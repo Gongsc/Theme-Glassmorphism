@@ -4,11 +4,14 @@ import { Icon } from '@iconify/vue'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/stores/app'
 import { ConfigRequestError, configFields, defaultConfig, fitsConfigField, getSiteConfig, importConfig, mergeConfig, readSavedConfig, saveConfig } from '@/monitor/config'
+import { resolveSiteIcon } from '@/monitor/siteIcon'
+import { imageFileToSiteIcon } from '@/utils/siteIconImage'
 import { message } from '@/utils/message'
 
 const store = useAppStore()
 const dialog = ref<HTMLDialogElement>()
 const file = ref<HTMLInputElement>()
+const iconFile = ref<HTMLInputElement>()
 const values = ref<Record<string, unknown>>({ ...defaultConfig })
 const baseline = ref<Record<string, unknown>>(getSiteConfig())
 const busy = ref(false)
@@ -118,6 +121,25 @@ async function upload(event: Event) {
   catch (error) { if (alive) report(error) }
   finally { busy.value = false }
 }
+// 站点图标：上传的图片保存为 data URL，输入框改为显示体积，避免展示整段 base64。
+const siteIconValue = computed(() => String(values.value.siteIconUrl ?? ''))
+const siteIconPreview = computed(() => resolveSiteIcon(siteIconValue.value) || '/favicon.svg')
+const siteIconUploaded = computed(() => siteIconValue.value.startsWith('data:'))
+const siteIconSize = computed(() => `${(siteIconValue.value.length / 1024).toFixed(1)} KiB`)
+async function uploadSiteIcon(event: Event) {
+  const input = event.target as HTMLInputElement
+  const selected = input.files?.[0]
+  input.value = ''
+  if (!selected || busy.value || !store.privateFeaturesAllowed) return
+  busy.value = true
+  try {
+    const dataUrl = await imageFileToSiteIcon(selected)
+    busy.value = false
+    if (alive) update('siteIconUrl', dataUrl)
+  }
+  catch (error) { if (alive) report(error) }
+  finally { busy.value = false }
+}
 onBeforeUnmount(() => { alive = false; restorePreview() })
 </script>
 <template>
@@ -127,6 +149,18 @@ onBeforeUnmount(() => { alive = false; restorePreview() })
     <fieldset class="settings-fields" :disabled="busy || !store.privateFeaturesAllowed">
       <template v-for="(field,index) in configFields" :key="field.key ?? index">
         <h3 v-if="field.type === 'title'">{{ field.label }}</h3>
+        <div v-else-if="field.key === 'siteIconUrl'" class="settings-field">
+          <span>{{ field.label }}</span>
+          <div class="site-icon-actions">
+            <img :src="siteIconPreview" alt="当前站点图标预览" width="36" height="36">
+            <Button variant="outline" size="sm" @click="iconFile?.click()">上传图片</Button>
+            <Button v-if="siteIconValue" variant="ghost" size="sm" @click="update(field.key, '')">清除</Button>
+          </div>
+          <p v-if="siteIconUploaded" class="site-icon-uploaded">已上传图片（{{ siteIconSize }}）</p>
+          <input v-else class="site-icon-url" type="text" placeholder="https://example.com/icon.png" :value="siteIconValue" :aria-invalid="!fitsConfigField(field, values[field.key])" aria-label="站点图标地址" @input="update(field.key,($event.target as HTMLInputElement).value)">
+          <small>{{ field.help }}</small>
+          <input ref="iconFile" type="file" accept="image/*" hidden @change="uploadSiteIcon">
+        </div>
         <label v-else-if="field.key && !(values.backgroundType === 'bing' && (field.key === 'lightBackgroundUrl' || field.key === 'darkBackgroundUrl'))" class="settings-field">
           <span>{{ field.label }}</span>
           <input v-if="field.type === 'boolean'" type="checkbox" :checked="Boolean(values[field.key])" @change="update(field.key,($event.target as HTMLInputElement).checked)">
@@ -153,5 +187,5 @@ onBeforeUnmount(() => { alive = false; restorePreview() })
 </template>
 <style scoped>
 .monitor-settings{position:fixed;inset:16px 16px 16px auto;margin:0;width:min(600px,calc(100vw - 32px));height:calc(100dvh - 32px);max-height:none;border:1px solid var(--glass-border);border-radius:20px;padding:0;background:var(--background);color:var(--foreground)}
-.monitor-settings[open]{display:flex;flex-direction:column}.monitor-settings::backdrop{background:#07101c88;backdrop-filter:blur(5px)}header{display:flex;justify-content:space-between;gap:16px;padding:22px}h2{font-size:19px;font-weight:650}header p,small,footer p{font-size:12px;opacity:.75;line-height:1.7}.settings-fields{border:0;margin:0;overflow:auto;padding:0 22px;flex:1;min-height:0}h3{font-size:15px;font-weight:650;padding:24px 0 12px;border-bottom:1px solid #8883}.settings-field{display:grid;grid-template-columns:1fr minmax(100px,45%);align-items:center;gap:10px;padding:14px 0;font-size:13px}.settings-field small{grid-column:1/-1;white-space:pre-line}.settings-field input:not([type=checkbox]),select,textarea{width:100%;padding:8px;border:1px solid #8885;border-radius:8px;background:var(--background);color:inherit}.settings-field input[type=checkbox]{justify-self:end;width:18px;height:18px}textarea{min-height:80px;grid-column:1/-1}footer{padding:16px 22px;border-top:1px solid #8883}footer>div{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}@media(max-width:600px){header,.settings-fields,footer{padding-left:16px;padding-right:16px}h2{font-size:16px}}
+.monitor-settings[open]{display:flex;flex-direction:column}.monitor-settings::backdrop{background:#07101c88;backdrop-filter:blur(5px)}header{display:flex;justify-content:space-between;gap:16px;padding:22px}h2{font-size:19px;font-weight:650}header p,small,footer p{font-size:12px;opacity:.75;line-height:1.7}.settings-fields{border:0;margin:0;overflow:auto;padding:0 22px;flex:1;min-height:0}h3{font-size:15px;font-weight:650;padding:24px 0 12px;border-bottom:1px solid #8883}.settings-field{display:grid;grid-template-columns:1fr minmax(100px,45%);align-items:center;gap:10px;padding:14px 0;font-size:13px}.settings-field small{grid-column:1/-1;white-space:pre-line}.settings-field input:not([type=checkbox]),select,textarea{width:100%;padding:8px;border:1px solid #8885;border-radius:8px;background:var(--background);color:inherit}.settings-field input[type=checkbox]{justify-self:end;width:18px;height:18px}textarea{min-height:80px;grid-column:1/-1}.site-icon-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px}.site-icon-actions img{width:36px;height:36px;object-fit:contain;border-radius:8px;border:1px solid #8883}.site-icon-url,.site-icon-uploaded{grid-column:1/-1}.site-icon-uploaded{font-size:12px;opacity:.75}footer{padding:16px 22px;border-top:1px solid #8883}footer>div{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}@media(max-width:600px){header,.settings-fields,footer{padding-left:16px;padding-right:16px}h2{font-size:16px}}
 </style>

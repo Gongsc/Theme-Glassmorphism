@@ -15,7 +15,13 @@ const { record: recordVisitorEvent } = useVisitorAudit()
 
 const isScrolled = inject<ReturnType<typeof ref<boolean>>>('isScrolled', ref(false))
 
-const siteFavicon = ref('/favicon.svg')
+// 自定义站点图标加载失败时（地址失效、跨域拦截等）回退到内置图标
+const failedSiteIcon = ref('')
+const siteFavicon = computed(() => appStore.siteIconUrl && appStore.siteIconUrl !== failedSiteIcon.value ? appStore.siteIconUrl : '/favicon.svg')
+function onSiteIconError(): void {
+  if (appStore.siteIconUrl)
+    failedSiteIcon.value = appStore.siteIconUrl
+}
 
 const actionButtons = computed(() => {
   const themeTitleMap = {
@@ -99,7 +105,7 @@ const sitename = computed(() => appStore.publicSettings?.sitename || 'Monitor')
     <div data-app-header-content class="app-header-content flex-between h-14 max-w-[1280px] mx-auto">
       <div class="flex items-center gap-3 cursor-pointer" @click="router.push('/')">
         <!-- 图标自带圆角玻璃底，不再套圆形头像裁切 -->
-        <img :src="siteFavicon" :alt="sitename" class="size-8 shrink-0" width="32" height="32">
+        <img :src="siteFavicon" :alt="sitename" class="size-8 shrink-0 object-contain" width="32" height="32" @error="onSiteIconError">
         <h3 class="m-0 text-lg font-semibold">
           {{ sitename }}
         </h3>

@@ -4,6 +4,7 @@ import type { ByteDecimalsConfig } from '@/utils/helper'
 import { useStorageAsync } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
+import { resolveSiteIcon } from '@/monitor/siteIcon'
 import { getAuthSession, requirePermission, setAuthSessionFromLogin, verifyLogin } from '@/services/auth.service'
 
 export type ThemeMode = 'auto' | 'light' | 'dark'
@@ -719,22 +720,7 @@ function readStringSetting(settings: ThemeSettings, key: string, fallback = ''):
 }
 
 function resolveBackgroundSource(value: unknown): string {
-  if (typeof value !== 'string')
-    return ''
-
-  const source = value.trim()
-  if (!source.toLowerCase().startsWith('local:'))
-    return source
-
-  const segments = source.slice('local:'.length)
-    .replaceAll('\\', '/')
-    .split('/')
-    .filter(Boolean)
-
-  if (segments.length === 0 || segments.some(segment => segment === '.' || segment === '..'))
-    return ''
-
-  return `/themes/user-assets/${segments.map(segment => encodeURIComponent(segment)).join('/')}`
+  return typeof value === 'string' ? value.trim() : ''
 }
 
 function readColorSetting(settings: ThemeSettings, key: string, fallback: string): string {
@@ -1118,6 +1104,9 @@ const useAppStore = defineStore('app', () => {
     return resolveBackgroundSource(themeSettings.value.lightBackgroundUrl)
   })
 
+  // 已校验的站点图标地址；为空时使用内置图标
+  const siteIconUrl = computed<string>(() => resolveSiteIcon(themeSettings.value.siteIconUrl))
+
   const darkBackgroundUrl = computed<string>(() => {
     return resolveBackgroundSource(themeSettings.value.darkBackgroundUrl)
   })
@@ -1273,6 +1262,7 @@ const useAppStore = defineStore('app', () => {
     backgroundEnabled,
     backgroundType,
     lightBackgroundUrl,
+    siteIconUrl,
     darkBackgroundUrl,
     currentBackgroundUrl,
     backgroundBlur,
