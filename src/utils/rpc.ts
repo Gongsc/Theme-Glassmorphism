@@ -169,6 +169,8 @@ export interface NodeStatus {
   net_total_down: number
   traffic_up?: number
   traffic_down?: number
+  /** Hub 按节点计费方式算好的本周期用量；旧版 Hub 不提供 */
+  traffic_used?: number
   process: number
   connections: number
   connections_udp: number

@@ -16,22 +16,27 @@ export function hasTrafficLimit(node: Pick<NodeData, 'traffic_limit'>): boolean 
   return (node.traffic_limit || 0) > 0
 }
 
-export function getTrafficUsed(node: Pick<NodeData, 'net_total_up' | 'net_total_down' | 'traffic_limit_type' | 'traffic_up' | 'traffic_down'>): number {
-  const net_total_up = node.traffic_up ?? node.net_total_up ?? 0
-  const net_total_down = node.traffic_down ?? node.net_total_down ?? 0
-  const { traffic_limit_type } = node
+type TrafficUsageFields = 'net_total_up' | 'net_total_down' | 'traffic_limit_type' | 'traffic_up' | 'traffic_down' | 'traffic_used'
 
-  switch (traffic_limit_type) {
-    case 'up': return net_total_up
-    case 'down': return net_total_down
-    case 'min': return Math.min(net_total_up, net_total_down)
-    case 'max': return Math.max(net_total_up, net_total_down)
-    case 'sum':
-    default: return net_total_up + net_total_down
+/**
+ * 本周期已用流量。优先使用 Hub 按计费方式算好的 month_used（与后台和流量告警一致）；
+ * 旧版 Hub 没有该字段时按同样规则计算：up / down / max，其余一律按上下行之和。
+ */
+export function getTrafficUsed(node: Pick<NodeData, TrafficUsageFields>): number {
+  if (typeof node.traffic_used === 'number' && Number.isFinite(node.traffic_used))
+    return node.traffic_used
+
+  const up = node.traffic_up ?? node.net_total_up ?? 0
+  const down = node.traffic_down ?? node.net_total_down ?? 0
+  switch (node.traffic_limit_type) {
+    case 'up': return up
+    case 'down': return down
+    case 'max': return Math.max(up, down)
+    default: return up + down
   }
 }
 
-export function getTrafficUsedPercentage(node: Pick<NodeData, 'traffic_limit' | 'net_total_up' | 'net_total_down' | 'traffic_limit_type' | 'traffic_up' | 'traffic_down'>): number {
+export function getTrafficUsedPercentage(node: Pick<NodeData, 'traffic_limit' | TrafficUsageFields>): number {
   if (!hasTrafficLimit(node))
     return 0
 

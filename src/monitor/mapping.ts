@@ -43,6 +43,7 @@ export function mapNode(n: Node) {
     load: m?.load?.[0] ?? 0, load5: m?.load?.[1] ?? 0, load15: m?.load?.[2] ?? 0,
     net_in: m?.net_rx ?? 0, net_out: m?.net_tx ?? 0,
     net_total_up: n.total_tx, net_total_down: n.total_rx, traffic_up: n.month_tx, traffic_down: n.month_rx,
+    ...(typeof n.month_used === 'number' ? { traffic_used: n.month_used } : {}),
     connections: m?.tcp ?? 0, connections_udp: m?.udp ?? 0, process: m?.procs ?? 0, uptime: m?.uptime ?? 0,
   }
   return { client, status }

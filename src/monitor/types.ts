@@ -54,6 +54,8 @@ export type Node = {
   total_tx: number
   month_rx: number
   month_tx: number
+  /** This period's usage as the node's traffic_mode meters it; absent on older hubs. */
+  month_used?: number
   month_start: string
   day_rx: number
   day_tx: number

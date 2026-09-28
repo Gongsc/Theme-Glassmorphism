@@ -528,7 +528,7 @@ function buildNodeMetadataItems(node: NodeData): NodeMetadataItem[] {
                       </span>
                     </div>
                     <TrafficProgress
-                      :upload="node.traffic_up ?? 0" :download="node.traffic_down ?? 0"
+                      :upload="node.traffic_up ?? 0" :download="node.traffic_down ?? 0" :used="node.traffic_used"
                       :traffic-limit="node.traffic_limit" :traffic-limit-type="(node.traffic_limit_type || 'sum')"
                       height="4px"
                     />

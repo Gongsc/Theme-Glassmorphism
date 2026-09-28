@@ -6,7 +6,9 @@ export interface TrafficProgressProps {
   upload: number
   download: number
   trafficLimit: number
-  trafficLimitType: 'up' | 'down' | 'min' | 'max' | 'sum'
+  trafficLimitType: 'up' | 'down' | 'max' | 'sum'
+  /** Hub 算好的本周期用量；提供时优先于按上下行计算 */
+  used?: number
   uploadColor?: string
   downloadColor?: string
   singleColor?: string
@@ -18,6 +20,7 @@ const props = withDefaults(defineProps<TrafficProgressProps>(), {
   uploadColor: undefined,
   downloadColor: undefined,
   singleColor: undefined,
+  used: undefined,
   height: undefined,
   showIndicator: false,
 })
@@ -25,13 +28,13 @@ const props = withDefaults(defineProps<TrafficProgressProps>(), {
 const showProgress = computed(() => props.trafficLimit > 0)
 
 const usedTraffic = computed(() => {
-  const { upload, download, trafficLimitType } = props
+  const { upload, download, trafficLimitType, used } = props
+  if (typeof used === 'number' && Number.isFinite(used))
+    return used
   switch (trafficLimitType) {
     case 'up': return upload
     case 'down': return download
-    case 'min': return Math.min(upload, download)
     case 'max': return Math.max(upload, download)
-    case 'sum': return upload + download
     default: return upload + download
   }
 })

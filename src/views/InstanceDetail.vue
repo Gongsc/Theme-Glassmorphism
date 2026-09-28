@@ -18,6 +18,7 @@ import { useNodesStore } from '@/stores/nodes'
 import { getCpuBenchmarkRating, getPassMarkCpuLookupUrl } from '@/utils/cpuBenchmark'
 import * as financeHelper from '@/utils/financeHelper'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatUptimeWithFormat } from '@/utils/helper'
+import { getTrafficUsed } from '@/utils/nodeMetricsHelper'
 import { getOSImage, getOSName } from '@/utils/osImageHelper'
 import { getRegionCode, getRegionDisplayName } from '@/utils/regionHelper'
 
@@ -297,18 +298,7 @@ function getDetailMetricCard(key: DetailMetricCardKey): MetricCard {
   const memoryUsage = usagePercentage(node?.ram ?? 0, node?.mem_total ?? 0)
   const swapUsage = usagePercentage(node?.swap ?? 0, node?.swap_total ?? 0)
   const diskUsage = usagePercentage(node?.disk ?? 0, node?.disk_total ?? 0)
-  const nodeTrafficUsed = (() => {
-    const up = node?.traffic_up ?? 0
-    const down = node?.traffic_down ?? 0
-    switch (node?.traffic_limit_type) {
-      case 'up': return up
-      case 'down': return down
-      case 'min': return Math.min(up, down)
-      case 'max': return Math.max(up, down)
-      case 'sum':
-      default: return up + down
-    }
-  })()
+  const nodeTrafficUsed = node ? getTrafficUsed(node) : 0
   const nodeTrafficLimit = node?.traffic_limit ?? 0
   const nodeHasTrafficLimit = nodeTrafficLimit > 0
   const nodeTrafficPercentage = nodeHasTrafficLimit
@@ -406,22 +396,7 @@ const storageInfo = computed<InfoItem[]>(() => [
   { label: '硬盘', value: formatBytes(data.value?.disk_total ?? 0), icon: 'icon-park-outline:hard-disk' },
 ])
 
-const trafficUsed = computed(() => {
-  const node = data.value
-  if (!node)
-    return 0
-  const net_total_up = node.traffic_up ?? 0
-  const net_total_down = node.traffic_down ?? 0
-  const { traffic_limit_type } = node
-  switch (traffic_limit_type) {
-    case 'up': return net_total_up
-    case 'down': return net_total_down
-    case 'min': return Math.min(net_total_up, net_total_down)
-    case 'max': return Math.max(net_total_up, net_total_down)
-    case 'sum':
-    default: return net_total_up + net_total_down
-  }
-})
+const trafficUsed = computed(() => data.value ? getTrafficUsed(data.value) : 0)
 
 const hasTrafficLimit = computed(() => (data.value?.traffic_limit ?? 0) > 0)
 
