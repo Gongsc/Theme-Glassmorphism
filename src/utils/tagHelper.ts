@@ -143,6 +143,18 @@ export function parseBillingCycleType(billingCycle: number): BillingCycleType {
 export function getBillingCycleText(billingCycle: number, lang: 'zh-CN' | 'en-US' = 'zh-CN'): string {
   const type = parseBillingCycleType(billingCycle)
 
+  // Hub 的 `<n>m` 周期按整年 365 天、整月 30 天换算而来，这里还原成年/月
+  if (type === 'custom' && billingCycle > 0) {
+    if (billingCycle % 365 === 0) {
+      const years = billingCycle / 365
+      return lang === 'zh-CN' ? `${years} 年` : `${years} Years`
+    }
+    if (billingCycle % 30 === 0) {
+      const months = billingCycle / 30
+      return lang === 'zh-CN' ? `${months} 个月` : `${months} Months`
+    }
+  }
+
   const texts: Record<BillingCycleType, Record<'zh-CN' | 'en-US', string>> = {
     monthly: { 'zh-CN': '月', 'en-US': 'Month' },
     quarterly: { 'zh-CN': '季', 'en-US': 'Quarter' },

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { mapNode } from './mapping.ts'
+import { probeOrder } from './transport.ts'
 import type { Node } from './types.ts'
 const node = {
   id: 7, name: 'JP', sort: 2, country: 'JP', online: true, last_seen: 1700000000,
@@ -23,6 +24,8 @@ const offline = mapNode({...node,online:false})
 assert.equal(offline.status.online,false); assert.equal(offline.status.net_in,0)
 assert.equal(offline.status.net_total_down,1800)
 assert.equal(mapNode({...node,billing_cycle:'once'}).client.billing_cycle,-1)
+for (const [cycle, days] of [['60m',1825],['18m',540],['4m',120],['0m',0],['1201m',0],['weekly',0]] as const)
+  assert.equal(mapNode({...node,billing_cycle:cycle}).client.billing_cycle,days,cycle)
 assert.equal(mapNode({...node,remark:'主节点；高带宽'}).client.remark,'主节点；高带宽')
 assert.equal('ipv4' in client,false); assert.equal('ipv6' in client,false)
 const panel = mapNode({...node,ipv4:'10.0.0.2',ipv6:'',addresses:[{address:'203.0.113.7',source:'interface'},{address:'2001:db8::7',source:'manual'}]}).client
@@ -108,3 +111,8 @@ assert.equal(isNodeInGroup('all', ALL_GROUPS), true)
 assert.equal(isNodeInGroup('', groupTabId('all')), false)
 assert.deepEqual(buildGroupTabs([...groupedNodes].reverse()).slice(1).map(t => t.name), [...groupNames].reverse().map(groupTabId))
 console.log('Monitor groups: intact names, collision-free tabs, ordering, ungrouped, legacy fallback passed')
+
+// 面板把 12 排到 3 前面；探测 7 没有数据，排在最后；已删除的 99 不出现
+const ping = [{ts:0,task_id:12,latency:1},{ts:60,task_id:12,latency:1},{ts:0,task_id:3,latency:2},{ts:0,task_id:99,latency:3}]
+assert.deepEqual(probeOrder({ping, probes:{'3':'b','7':'c','12':'a'}}), [['12','a'],['3','b'],['7','c']])
+console.log('Probe order: panel order from ping rows, idle probes last passed')

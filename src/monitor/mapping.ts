@@ -24,15 +24,23 @@ function nodeAddresses(n: Node): { ipv4?: string, ipv6?: string } {
   const ipv4 = list.find(a => a && !isV6(a)), ipv6 = list.find(a => a && isV6(a))
   return { ...(ipv4 ? { ipv4 } : {}), ...(ipv6 ? { ipv6 } : {}) }
 }
+const NAMED_CYCLES: Record<string, number> = { monthly: 30, quarterly: 90, semiannual: 180, yearly: 365, biennial: 730, triennial: 1095, once: -1 }
+// 付款周期 → 天数；Hub 1.3.1 起任意月数存为 `<n>m`（1–1200），整年按 365 天，其余按 30 天/月
+export function cycleDays(cycle: string): number {
+  if (cycle in NAMED_CYCLES) return NAMED_CYCLES[cycle]!
+  const match = /^(\d+)m$/.exec(cycle)
+  const months = match ? Number(match[1]) : 0
+  if (months < 1 || months > 1200) return 0
+  return months % 12 === 0 ? months / 12 * 365 : months * 30
+}
 export function mapNode(n: Node) {
   const m = n.online ? n.metrics : null
-  const cycle: Record<string, number> = { monthly: 30, quarterly: 90, semiannual: 180, yearly: 365, biennial: 730, triennial: 1095, once: -1 }
   const client = {
     uuid: String(n.id), name: n.name, cpu_name: n.cpu_name, virtualization: n.virt, arch: n.arch,
     cpu_cores: n.cpu_cores, os: n.os, kernel_version: n.kernel, region: n.country,
     remark: n.remark, mem_total: n.mem_total, swap_total: n.swap_total, disk_total: n.disk_total,
     version: n.agent_version, weight: n.sort, price: n.price, currency: n.currency,
-    billing_cycle: cycle[n.billing_cycle] ?? 0, auto_renewal: false, expired_at: n.expires_at || '', expires_in: n.expires_in,
+    billing_cycle: cycleDays(n.billing_cycle), auto_renewal: false, expired_at: n.expires_at || '', expires_in: n.expires_in,
     group: typeof n.group === 'string' ? n.group : '', hidden: false, traffic_limit: n.traffic_limit, traffic_limit_type: n.traffic_mode,
     created_at: '', updated_at: '', ...nodeAddresses(n),
   }

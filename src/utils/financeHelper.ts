@@ -2,7 +2,8 @@ import type { NodeData } from '@/stores/nodes'
 import { isFreeNode } from '@/utils/tagHelper'
 
 export type CurrencyCode = 'CNY' | 'USD' | 'HKD' | 'EUR' | 'GBP' | 'JPY' | 'RUB' | 'CHF' | 'INR' | 'VND' | 'THB' | 'CAD'
-export type ExchangeRates = Record<CurrencyCode, number>
+// 固定币种之外，还带汇率接口返回的其他三字母币种（Hub 1.3.1 起节点货币可填任意 ISO 4217 代码）
+export type ExchangeRates = Record<CurrencyCode, number> & { [code: string]: number | undefined }
 export type ExchangeRateSource = 'cache' | 'network' | 'stale-cache' | 'default'
 
 export type MeteredTrafficMode = 'sum' | 'max' | 'up' | 'down'
@@ -33,7 +34,7 @@ interface ExchangeRatesCache {
   rates: Partial<Record<CurrencyCode, number>>
 }
 
-const CACHE_KEY = 'glassmorphism_finance_exchange_rates_cny_v1'
+const CACHE_KEY = 'glassmorphism_finance_exchange_rates_cny_v2'
 const OVERRIDES_KEY = 'glassmorphism_finance_exchange_rate_overrides_v1'
 const FINANCE_CURRENCY_KEY = 'fin_currency'
 const EXCLUDE_FREE_KEY = 'fin_exclude_free'
@@ -41,6 +42,7 @@ const METERED_SETTINGS_KEY_PREFIX = 'theme:usage-estimator:v1:'
 export const MAX_ESTIMATE_INPUT = 1e12
 export const SUPPORTED_CURRENCIES: CurrencyCode[] = ['CNY', 'USD', 'HKD', 'EUR', 'GBP', 'JPY', 'RUB', 'CHF', 'INR', 'VND', 'THB', 'CAD']
 const MS_PER_DAY = 24 * 60 * 60 * 1000
+const ISO_CURRENCY_REGEX = /^[A-Z]{3}$/
 const LONG_TERM_YEARS = 100
 let exchangeRatesInflight: Promise<{ rates: ExchangeRates, source: ExchangeRateSource, updatedAt: number | null }> | null = null
 
@@ -434,6 +436,13 @@ export function getPriceCNY(node: NodeData, exchangeRates: ExchangeRates): numbe
   if (!Number.isFinite(price) || price <= 0)
     return 0
 
+  const code = String(node.currency || '').trim().toUpperCase()
+  if (ISO_CURRENCY_REGEX.test(code) && !(SUPPORTED_CURRENCIES as string[]).includes(code)) {
+    // 其他币种：有汇率才折算，没有就不计入，免得按人民币误算
+    const rate = exchangeRates[code]
+    return rate && rate > 0 ? price / rate : 0
+  }
+
   const currency = normalizeCurrency(node.currency)
   if (currency === 'CNY')
     return price
@@ -521,6 +530,12 @@ function sanitizeExchangeRates(rates: unknown): ExchangeRates | null {
       return null
 
     result[currency] = value
+  }
+
+  for (const [code, raw] of Object.entries(record)) {
+    const value = Number(raw)
+    if (ISO_CURRENCY_REGEX.test(code) && !(code in result) && Number.isFinite(value) && value > 0)
+      result[code] = value
   }
 
   return result

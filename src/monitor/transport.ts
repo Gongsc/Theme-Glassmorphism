@@ -45,6 +45,10 @@ async function mapLimited<T, R>(items: T[], worker: (item: T) => Promise<R>): Pr
   }))
   return output
 }
+export function probeOrder(h: Pick<History, 'ping' | 'probes'>): [string, string][] {
+  const ids = [...new Set([...h.ping.map(p => String(p.task_id)), ...Object.keys(h.probes)])]
+  return ids.filter(id => id in h.probes).map(id => [id, h.probes[id]!])
+}
 export async function records(params: Record<string, unknown>, ping = false) {
   const nodes = await readNodes()
   const ids = params.uuid ? nodes.filter(n => String(n.id) === String(params.uuid)) : nodes
@@ -52,7 +56,8 @@ export async function records(params: Record<string, unknown>, ping = false) {
     const h = await history(String(n.id), Number(params.hours ?? 1), ping ? 'ping' : 'metrics', Number(params.max_count ?? params.maxCount ?? 600))
     if (ping) return {
       records: h.ping.filter(p => !params.task_id || String(p.task_id) === String(params.task_id)).map(p => ({ client: String(n.id), task_id: p.task_id, time: new Date(p.ts*1000).toISOString(), value: p.latency ?? -1, monitor_window_loss: h.loss?.[String(p.task_id)] ?? 0, monitor_bucket_loss: p.loss ?? 0 })),
-      tasks: Object.entries(h.probes).map(([id,name]) => {
+      // Hub 1.3.1 起 ping 行按面板排序逐个输出；probes 是对象，整数键会被 JS 按大小重排，所以顺序取自 ping 行，无数据的排在后面
+      tasks: probeOrder(h).map(([id,name]) => {
         const values = h.ping.filter(p => String(p.task_id) === id && p.latency !== null).map(p => p.latency!)
         return {id:Number(id), name, interval:60, loss:h.loss?.[id] ?? 0, clients:[String(n.id)], avg: values.length ? values.reduce((a,b)=>a+b,0)/values.length : undefined, min: values.length ? Math.min(...values) : undefined, max: values.length ? Math.max(...values) : undefined}
       }),
