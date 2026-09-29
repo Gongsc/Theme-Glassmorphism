@@ -644,7 +644,7 @@ function getCardDefinition(key: GeneralCardKey): GeneralMetricCard {
 
 const visibleCards = computed(() => appStore.generalCardOrder.map(getCardDefinition))
 const showEarth = computed(() => !appStore.hideEarth)
-const isTiledEarth = computed(() => showEarth.value && appStore.earthRenderer === 'tiled')
+const isTiledEarth = computed(() => showEarth.value && (appStore.earthRenderer === 'tiled' || appStore.earthRenderer === 'dots'))
 const shouldRenderHeader = computed(() => showEarth.value || visibleCards.value.length > 0)
 const hasExtraCards = computed(() => visibleCards.value.length > 6)
 const wrapperClass = computed(() => {

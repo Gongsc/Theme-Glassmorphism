@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import type { DotMarker } from '@/components/NodeEarthDotLayer.vue'
 import type { NodeData } from '@/stores/nodes'
 import { computed } from 'vue'
+import NodeEarthDotLayer from '@/components/NodeEarthDotLayer.vue'
 import { useNodeGeoClusters } from '@/composables/useNodeGeoClusters'
 
 const props = defineProps<{
   nodes?: NodeData[]
+  // 点阵模式：贴图换成圆点栅格，节点由点亮的像素表示
+  dots?: boolean
 }>()
 
 const MAP_WIDTH = 1440
@@ -31,6 +35,7 @@ interface ClusterMarker {
   meta: string
   x: number
   y: number
+  servers: number
   statusClass: string
 }
 
@@ -84,37 +89,62 @@ const clusterMarkers = computed<ClusterMarker[]>(() => regionClusters.value.map(
     meta: formatClusterMeta(cluster),
     x: point.x,
     y: point.y,
+    servers: cluster.servers,
     statusClass: cluster.onlineServers > 0 ? 'is-online' : 'is-offline',
   }
 }))
+
+const dotMarkers = computed<DotMarker[]>(() => clusterMarkers.value.map(marker => ({
+  id: marker.id,
+  x: marker.x,
+  y: marker.y,
+  servers: marker.servers,
+  online: marker.statusClass === 'is-online',
+})))
+
+// 点阵模式下节点点亮范围更大，国旗相应上移
+const flagOffsetY = computed(() => props.dots ? 44 : 34)
 </script>
 
 <template>
   <div class="earth-map-scroll relative z-0 h-full w-full overflow-x-auto overflow-y-visible pointer-events-auto">
     <div class="earth-map-shell relative mx-auto h-full w-full overflow-hidden rounded-[1.5rem] border border-white/35 bg-background/35 shadow-[0_24px_80px_rgb(15_23_42/0.18)] backdrop-blur-2xl dark:border-cyan-200/10 dark:bg-slate-950/35">
-      <div class="earth-map relative h-full min-w-0 overflow-hidden">
-        <svg class="map-svg absolute inset-0 size-full" :viewBox="`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`" preserveAspectRatio="xMidYMid meet" role="img" aria-label="真实地球贴图节点世界地图">
-          <defs>
+      <div class="earth-map relative h-full min-w-0 overflow-hidden" :class="{ 'is-dots': props.dots }">
+        <NodeEarthDotLayer
+          v-if="props.dots"
+          :markers="dotMarkers"
+          :width="MAP_WIDTH"
+          :height="MAP_HEIGHT"
+          :north-lat="VISIBLE_NORTH_LAT"
+          :south-lat="VISIBLE_SOUTH_LAT"
+          :mask-src="EARTH_SPECULAR_MAP"
+        />
+        <svg class="map-svg absolute inset-0 size-full" :viewBox="`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`" preserveAspectRatio="xMidYMid meet" role="img" :aria-label="props.dots ? '点阵节点世界地图' : '真实地球贴图节点世界地图'">
+          <defs v-if="!props.dots">
             <filter id="earth-relief" x="-4%" y="-4%" width="108%" height="108%">
               <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#ffffff" flood-opacity="0.14" />
               <feDropShadow dx="0" dy="-5" stdDeviation="9" flood-color="#082f49" flood-opacity="0.16" />
             </filter>
           </defs>
 
-          <image :href="EARTH_DAY_TEXTURE" x="0" :y="-TEXTURE_SOURCE_Y" :width="MAP_WIDTH" :height="TEXTURE_FULL_HEIGHT" preserveAspectRatio="none" class="earth-image earth-image-base" />
-          <image :href="EARTH_BUMP_MAP" x="0" :y="-TEXTURE_SOURCE_Y" :width="MAP_WIDTH" :height="TEXTURE_FULL_HEIGHT" preserveAspectRatio="none" class="earth-image earth-image-bump" filter="url(#earth-relief)" />
-          <image :href="EARTH_SPECULAR_MAP" x="0" :y="-TEXTURE_SOURCE_Y" :width="MAP_WIDTH" :height="TEXTURE_FULL_HEIGHT" preserveAspectRatio="none" class="earth-image earth-image-water" />
-          <rect :width="MAP_WIDTH" :height="MAP_HEIGHT" class="earth-overlay" />
+          <template v-if="!props.dots">
+            <image :href="EARTH_DAY_TEXTURE" x="0" :y="-TEXTURE_SOURCE_Y" :width="MAP_WIDTH" :height="TEXTURE_FULL_HEIGHT" preserveAspectRatio="none" class="earth-image earth-image-base" />
+            <image :href="EARTH_BUMP_MAP" x="0" :y="-TEXTURE_SOURCE_Y" :width="MAP_WIDTH" :height="TEXTURE_FULL_HEIGHT" preserveAspectRatio="none" class="earth-image earth-image-bump" filter="url(#earth-relief)" />
+            <image :href="EARTH_SPECULAR_MAP" x="0" :y="-TEXTURE_SOURCE_Y" :width="MAP_WIDTH" :height="TEXTURE_FULL_HEIGHT" preserveAspectRatio="none" class="earth-image earth-image-water" />
+            <rect :width="MAP_WIDTH" :height="MAP_HEIGHT" class="earth-overlay" />
+          </template>
 
           <g class="city-points">
             <template v-for="marker in clusterMarkers" :key="`${marker.id}-point`">
-              <circle :cx="marker.x" :cy="marker.y" r="11" class="city-region" :class="marker.statusClass" />
-              <circle :cx="marker.x" :cy="marker.y" r="3.8" class="city-dot" :class="marker.statusClass" />
+              <template v-if="!props.dots">
+                <circle :cx="marker.x" :cy="marker.y" r="11" class="city-region" :class="marker.statusClass" />
+                <circle :cx="marker.x" :cy="marker.y" r="3.8" class="city-dot" :class="marker.statusClass" />
+              </template>
               <image
                 v-if="marker.code"
                 :href="`/images/flags/${marker.code}.svg`"
                 :x="marker.x - 13"
-                :y="marker.y - 34"
+                :y="marker.y - flagOffsetY"
                 width="26"
                 height="26"
                 preserveAspectRatio="xMidYMid slice"

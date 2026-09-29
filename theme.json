@@ -118,7 +118,7 @@
       "key": "stopEarth",
       "type": "boolean",
       "default": false,
-      "help": "开启后地球默认不自动旋转，用户仍可手动拖拽查看",
+      "help": "开启后地球默认不自动旋转，用户仍可手动拖拽查看；点阵平铺地图同时停止扫描线与波纹动画",
       "label": "停止地球旋转"
     },
     {
@@ -137,9 +137,13 @@
         {
           "value": "tiled",
           "label": "tiled"
+        },
+        {
+          "value": "dots",
+          "label": "dots"
         }
       ],
-      "help": "realistic=贴图，cobe=点阵，tiled=平铺地图。",
+      "help": "realistic=贴图，cobe=点阵，tiled=平铺地图，dots=点阵平铺地图。",
       "label": "地球样式"
     },
     {

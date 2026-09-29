@@ -19,11 +19,14 @@ const earthComponent = computed(() => {
     realistic: NodeEarthRealisticGlobe,
     cobe: NodeEarthCobeGlobe,
     tiled: NodeEarthTiledMap,
+    dots: NodeEarthTiledMap,
   }
   return components[appStore.earthRenderer] ?? NodeEarthRealisticGlobe
 })
+// 点阵平铺地图复用平铺地图的布局与图例
+const earthProps = computed(() => appStore.earthRenderer === 'dots' ? { dots: true } : {})
 </script>
 
 <template>
-  <component :is="earthComponent" v-bind="attrs" :nodes="props.nodes" />
+  <component :is="earthComponent" v-bind="{ ...attrs, ...earthProps }" :nodes="props.nodes" />
 </template>
