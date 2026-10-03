@@ -33,12 +33,17 @@ export function cycleDays(cycle: string): number {
   if (months < 1 || months > 1200) return 0
   return months % 12 === 0 ? months / 12 * 365 : months * 30
 }
+// 卡片备注：公开备注在前；私有备注 remark 只有登录后 Hub 才下发，跟在后面一起显示，重复的项只留一个
+export function nodeRemark(n: Pick<Node, 'public_remark' | 'remark'>): string {
+  const parts = [n.public_remark, n.remark].flatMap(r => typeof r === 'string' ? r.split(/[;；]/) : []).map(p => p.trim()).filter(Boolean)
+  return [...new Set(parts)].join('；')
+}
 export function mapNode(n: Node) {
   const m = n.online ? n.metrics : null
   const client = {
     uuid: String(n.id), name: n.name, cpu_name: n.cpu_name, virtualization: n.virt, arch: n.arch,
     cpu_cores: n.cpu_cores, os: n.os, kernel_version: n.kernel, region: n.country,
-    remark: typeof n.public_remark === 'string' ? n.public_remark : '', mem_total: n.mem_total, swap_total: n.swap_total, disk_total: n.disk_total,
+    remark: nodeRemark(n), mem_total: n.mem_total, swap_total: n.swap_total, disk_total: n.disk_total,
     version: n.agent_version, weight: n.sort, price: n.price, currency: n.currency,
     billing_cycle: cycleDays(n.billing_cycle), auto_renewal: false, expired_at: n.expires_at || '', expires_in: n.expires_in,
     group: typeof n.group === 'string' ? n.group : '', hidden: false, traffic_limit: n.traffic_limit, traffic_limit_type: n.traffic_mode,

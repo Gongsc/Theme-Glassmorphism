@@ -26,10 +26,12 @@ assert.equal(offline.status.net_total_down,1800)
 assert.equal(mapNode({...node,billing_cycle:'once'}).client.billing_cycle,-1)
 for (const [cycle, days] of [['60m',1825],['18m',540],['4m',120],['0m',0],['1201m',0],['weekly',0]] as const)
   assert.equal(mapNode({...node,billing_cycle:cycle}).client.billing_cycle,days,cycle)
-// 访客与登录后都显示公开备注；私有备注 remark 只在面板里，不进主题；旧 Hub 没有 public_remark
+// 访客只拿到公开备注；登录后 Hub 另给私有备注 remark，跟在公开备注后面，重复项去掉；旧 Hub 没有 public_remark
 assert.equal(mapNode({...node,public_remark:'主节点；高带宽'}).client.remark,'主节点；高带宽')
-assert.equal(mapNode({...node,remark:'私有备注',public_remark:''}).client.remark,'')
-assert.equal(mapNode({...node,remark:'私有备注'}).client.remark,'')
+assert.equal(mapNode({...node,public_remark:'主节点；高带宽',remark:'续费找客服; 高带宽'}).client.remark,'主节点；高带宽；续费找客服')
+assert.equal(mapNode({...node,public_remark:'',remark:'私有备注'}).client.remark,'私有备注')
+assert.equal(mapNode({...node,remark:'私有备注'}).client.remark,'私有备注')
+assert.equal(mapNode(node).client.remark,'')
 assert.equal('ipv4' in client,false); assert.equal('ipv6' in client,false)
 const panel = mapNode({...node,ipv4:'10.0.0.2',ipv6:'',addresses:[{address:'203.0.113.7',source:'interface'},{address:'2001:db8::7',source:'manual'}]}).client
 assert.equal(panel.ipv4,'203.0.113.7'); assert.equal(panel.ipv6,'2001:db8::7')

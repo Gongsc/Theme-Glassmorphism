@@ -15,9 +15,10 @@ class Handler(BaseHTTPRequestHandler):
             for i, (name, country) in enumerate([('Tokyo · 东京主节点','JP'),('Singapore · 新加坡','SG'),('Hong Kong · 香港边缘','HK'),('Frankfurt · 法兰克福','DE'),('Los Angeles · 洛杉矶','US'),('备用节点 · 等待连接','CN')]):
                 m = dict(uptime=86400*(i+3),cpu=18+i*13,load=[.21,.38,.26],mem_total=8*G,mem_used=(2+i*.65)*G,swap_total=G,swap_used=0,disk_total=80*G,disk_used=(20+i*6)*G,net_rx=(i+1)*820000,net_tx=(i+1)*310000,total_rx=80*G,total_tx=40*G,month_rx=20*G,month_tx=10*G,tcp=36,udp=8,procs=128)
                 nodes.append(dict(id=i+1,name=name,sort=i,public=True,online=i<5,country=country,last_seen=now-7200,metrics=m if i<5 else None,os='Ubuntu 24.04',kernel='6.8.0',arch='x86_64',virt='kvm',cpu_name='AMD EPYC',cpu_cores=4,mem_total=8*G,swap_total=G,disk_total=80*G,agent_version='1.0',price=5,currency=['USD','HKD','TWD','CNY','USD','USD'][i],billing_cycle='monthly',expires_at=None,traffic_limit=500*G,traffic_mode='sum',traffic_reset_day=1,total_rx=80*G,total_tx=40*G,month_rx=20*G,month_tx=10*G,month_start='',day_rx=3*G,day_tx=G))
-                # public_remark 给访客看；remark 是站长私有备注，主题不显示
-                nodes[-1].update(public_remark=['主力节点；CN2 GIA','','晚高峰略有拥堵','','',''][i], remark='私有备注，不应出现在主题里')
+                # public_remark 给访客看；remark 是站长私有备注，和真实 Hub 一样只在登录后下发
+                nodes[-1].update(public_remark=['主力节点；CN2 GIA','','晚高峰略有拥堵','','',''][i])
                 if AUTHED:
+                    nodes[-1].update(remark=['续费找客服','年付到期前迁移','','','',''][i])
                     nodes[-1].update(ip=f'203.0.113.{i+10}', ipv4=f'203.0.113.{i+10}', ipv6=f'2001:db8::{i+10:x}' if i % 2 == 0 else '')
             data = dict(nodes=nodes)
         elif '/metrics' in self.path:
