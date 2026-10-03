@@ -12,6 +12,7 @@ import { useAppStore } from '@/stores/app'
 import * as financeHelper from '@/utils/financeHelper'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, formatUptimeWithFormat } from '@/utils/helper'
 import { getTrafficUsed, getTrafficUsedPercentage } from '@/utils/nodeMetricsHelper'
+import { formatMoney } from '@/utils/tagHelper'
 
 interface SnapshotRow {
   uuid: string
@@ -117,6 +118,11 @@ function formatBillingCycle(days: number): string {
 function formatPrice(row: SnapshotRow): string {
   if (row.price <= 0)
     return '-'
+
+  // 固定币种之外的三字母代码（Hub 1.3.1 起可填任意代码）不能归到人民币
+  const code = String(row.currency || '').trim().toUpperCase()
+  if (/^[A-Z]{3}$/.test(code) && !(financeHelper.SUPPORTED_CURRENCIES as string[]).includes(code))
+    return `${formatMoney(row.price, code)} ${code}`
 
   const currency = financeHelper.normalizeCurrency(row.currency)
   const amount = financeHelper.formatFinanceAmount(row.price, currency)

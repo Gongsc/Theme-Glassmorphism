@@ -1,4 +1,4 @@
-import { request, records } from '@/monitor/transport'
+import { historyHours, request, records } from '@/monitor/transport'
 import { loadConfig } from '@/monitor/config'
 import { NETWORK_CONFIG } from '@/constants/network'
 
@@ -410,8 +410,9 @@ export class KomariApi {
    * 获取站点的公开设置属性
    */
   async getPublicSettings(): Promise<PublicSettings> {
-    const [me, config] = await Promise.all([request<{ site_name: string; public_page: boolean; authed: boolean }>('/me'), loadConfig()])
-    return { sitename: me.site_name, description: '', allow_cors: false, custom_body: '', custom_head: '', disable_password_login: false, oauth_enable: false, oauth_provider: null, private_site: !me.public_page, record_enabled: true, record_preserve_time: me.authed ? 2160 : 168, ping_record_preserve_time: me.authed ? 2160 : 168, theme: 'glassmorphism', theme_settings: config }
+    const [me, config] = await Promise.all([request<{ site_name: string; public_page: boolean; authed: boolean; history_days?: number }>('/me'), loadConfig()])
+    const preserveHours = historyHours(me.history_days, me.authed)
+    return { sitename: me.site_name, description: '', allow_cors: false, custom_body: '', custom_head: '', disable_password_login: false, oauth_enable: false, oauth_provider: null, private_site: !me.public_page, record_enabled: true, record_preserve_time: preserveHours, ping_record_preserve_time: preserveHours, theme: 'glassmorphism', theme_settings: config }
   }
 
   /**

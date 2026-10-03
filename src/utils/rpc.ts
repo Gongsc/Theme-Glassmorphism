@@ -198,6 +198,8 @@ export interface StatusRecord {
   disk_total: number
   net_in: number
   net_out: number
+  /** 桶内最高 CPU；Hub 1.3.2 起提供 */
+  cpu_peak?: number
   /** 桶内最高速率；旧版 Hub 不提供 */
   net_in_peak?: number
   net_out_peak?: number
@@ -208,6 +210,8 @@ export interface StatusRecord {
   process: number
   connections: number
   connections_udp: number
+  /** 每个点覆盖的秒数；Hub 1.3.2 起提供 */
+  step?: number
 }
 
 /** Ping 记录 */

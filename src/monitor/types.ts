@@ -66,5 +66,8 @@ export type Node = {
   ipv6?: string
   /** Hub-selected display addresses, at most one per family, v4 first. */
   addresses?: { address: string, source: string }[]
+  /** Panel only; the owner's private note. */
   remark?: string
+  /** One-line note for visitors, at most 100 chars; absent before hub 1.3.2. */
+  public_remark?: string
 }

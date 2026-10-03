@@ -11,6 +11,21 @@ export async function request<T>(path: string, signal?: AbortSignal): Promise<T>
   if (!response.ok) throw new Error(`Monitor API ${response.status}`)
   return response.json()
 }
+// Hub 1.3.2 起 /api/me 下发保留天数 history_days（1–365），metrics 的 hours 上限是它 × 24，登录与匿名相同；
+// 旧 Hub 没有这个字段，沿用原来的上限：匿名 168、登录 2160
+export function historyHours(days: unknown, authed: boolean): number {
+  if (typeof days === 'number' && Number.isInteger(days) && days >= 1) return Math.min(days, 365) * 24
+  return authed ? 2160 : 168
+}
+// 时间范围按钮：小于保留期的整档位，最后加上保留期本身；保留期比某档多不到四分之一时去掉那一档，免得「30 天」「31 天」并列
+export function historyWindows(presets: number[], maxHours: number): number[] {
+  const hours = presets.filter(h => h === maxHours || h * 1.25 <= maxHours)
+  if (maxHours > (presets[0] ?? 0) && !hours.includes(maxHours)) hours.push(maxHours)
+  return hours
+}
+export function windowLabel(hours: number): string {
+  return hours % 24 === 0 ? `${hours / 24} 天` : `${hours} 小时`
+}
 export function acceptNodes(nodes: Node[]) {
   if (!Array.isArray(nodes)) throw new Error('无效节点快照')
   snapshot = nodes; received = Date.now()
@@ -25,8 +40,9 @@ export function mappedNodes(nodes: Node[]) {
   const entries = nodes.map(mapNode)
   return { clients: Object.fromEntries(entries.map(n => [n.client.uuid, n.client])), statuses: Object.fromEntries(entries.map(n => [n.client.uuid, n.status])) }
 }
-// net_rx_max / net_tx_max：桶内最高速率（较新的 Hub 才返回），net_rx / net_tx 是桶内平均
-type History = { metrics: { ts: number; cpu: number; mem_used: number; disk_used: number; net_rx: number; net_tx: number; net_rx_max?: number; net_tx_max?: number }[]; ping: { ts: number; task_id: number; latency: number | null; loss?: number }[]; probes: Record<string,string>; loss?: Record<string,number> }
+// net_rx_max / net_tx_max（Hub 1.3.1 起）、cpu_max（1.3.2 起）：桶内最高值，其余是桶内平均
+// step：每个点覆盖的秒数（1.3.2 起；7 天以上的窗口读小时汇总，至少 3600）；minutes：桶内有数据的分钟数
+type History = { step?: number; metrics: { ts: number; cpu: number; cpu_max?: number; mem_used: number; disk_used: number; net_rx: number; net_tx: number; net_rx_max?: number; net_tx_max?: number; minutes?: number }[]; ping: { ts: number; task_id: number; latency: number | null; loss?: number }[]; probes: Record<string,string>; loss?: Record<string,number> }
 async function history(id: string, hours: number, series: string, points = 600) {
   if (!/^\d+$/.test(id)) throw new Error('无效节点编号')
   const path = `/nodes/${id}/metrics?${new URLSearchParams({ hours: String(hours), points: String(points), series })}`
@@ -62,7 +78,7 @@ export async function records(params: Record<string, unknown>, ping = false) {
         return {id:Number(id), name, interval:60, loss:h.loss?.[id] ?? 0, clients:[String(n.id)], avg: values.length ? values.reduce((a,b)=>a+b,0)/values.length : undefined, min: values.length ? Math.min(...values) : undefined, max: values.length ? Math.max(...values) : undefined}
       }),
     }
-    return { records: h.metrics.map(p => ({ client:String(n.id), time:new Date(p.ts*1000).toISOString(), cpu:p.cpu, ram:p.mem_used, ram_total:n.mem_total, disk:p.disk_used, disk_total:n.disk_total, net_in:p.net_rx, net_out:p.net_tx, ...(p.net_rx_max == null ? {} : {net_in_peak:p.net_rx_max}), ...(p.net_tx_max == null ? {} : {net_out_peak:p.net_tx_max}) })) }
+    return { records: h.metrics.map(p => ({ client:String(n.id), time:new Date(p.ts*1000).toISOString(), cpu:p.cpu, ram:p.mem_used, ram_total:n.mem_total, disk:p.disk_used, disk_total:n.disk_total, net_in:p.net_rx, net_out:p.net_tx, ...(h.step == null ? {} : {step:h.step}), ...(p.cpu_max == null ? {} : {cpu_peak:p.cpu_max}), ...(p.net_rx_max == null ? {} : {net_in_peak:p.net_rx_max}), ...(p.net_tx_max == null ? {} : {net_out_peak:p.net_tx_max}) })) }
   })
   const all = result.flatMap<Record<string, unknown>>(r => r.records)
   return { records: all, count: all.length, tasks: result.flatMap(r => 'tasks' in r ? r.tasks ?? [] : []) }

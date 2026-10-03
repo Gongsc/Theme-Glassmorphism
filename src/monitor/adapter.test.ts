@@ -26,7 +26,10 @@ assert.equal(offline.status.net_total_down,1800)
 assert.equal(mapNode({...node,billing_cycle:'once'}).client.billing_cycle,-1)
 for (const [cycle, days] of [['60m',1825],['18m',540],['4m',120],['0m',0],['1201m',0],['weekly',0]] as const)
   assert.equal(mapNode({...node,billing_cycle:cycle}).client.billing_cycle,days,cycle)
-assert.equal(mapNode({...node,remark:'主节点；高带宽'}).client.remark,'主节点；高带宽')
+// 访客与登录后都显示公开备注；私有备注 remark 只在面板里，不进主题；旧 Hub 没有 public_remark
+assert.equal(mapNode({...node,public_remark:'主节点；高带宽'}).client.remark,'主节点；高带宽')
+assert.equal(mapNode({...node,remark:'私有备注',public_remark:''}).client.remark,'')
+assert.equal(mapNode({...node,remark:'私有备注'}).client.remark,'')
 assert.equal('ipv4' in client,false); assert.equal('ipv6' in client,false)
 const panel = mapNode({...node,ipv4:'10.0.0.2',ipv6:'',addresses:[{address:'203.0.113.7',source:'interface'},{address:'2001:db8::7',source:'manual'}]}).client
 assert.equal(panel.ipv4,'203.0.113.7'); assert.equal(panel.ipv6,'2001:db8::7')
@@ -48,7 +51,8 @@ const requests: string[] = []
 globalThis.fetch = (async (url: string | URL | Request) => {
   requests.push(String(url))
   return new Response(JSON.stringify({
-    metrics: [{ts:1700000000,cpu:25,mem_used:200,disk_used:500,net_rx:120,net_tx:60,net_rx_max:480,net_tx_max:90},{ts:1700000060,cpu:25,mem_used:200,disk_used:500,net_rx:100,net_tx:50}],
+    step: 3600,
+    metrics: [{ts:1700000000,cpu:25,cpu_max:93,mem_used:200,disk_used:500,net_rx:120,net_tx:60,net_rx_max:480,net_tx_max:90,minutes:60},{ts:1700000060,cpu:25,mem_used:200,disk_used:500,net_rx:100,net_tx:50}],
     ping: [{ts:1700000000,task_id:1,latency:20,loss:50},{ts:1700000060,task_id:1,latency:null,loss:100}],
     probes: {'1':'Probe'}, loss: {'1':7.69},
   }),{status:200,headers:{'content-type':'application/json'}})
@@ -62,6 +66,8 @@ try {
   assert.equal(history.records[0]?.net_in,120)
   assert.equal(history.records[0]?.net_in_peak,480); assert.equal(history.records[0]?.net_out_peak,90)
   assert.equal('net_in_peak' in history.records[1]!,false)
+  assert.equal(history.records[0]?.cpu_peak,93); assert.equal('cpu_peak' in history.records[1]!,false)
+  assert.equal(history.records[1]?.step,3600)
   assert.equal('net_total_up' in history.records[0]!,false)
   assert.ok(requests.every(url => url.startsWith('/api/nodes/7/metrics?')))
   await assert.rejects(dispatch('admin:getLogs'), /Monitor 不提供/)
@@ -116,3 +122,25 @@ console.log('Monitor groups: intact names, collision-free tabs, ordering, ungrou
 const ping = [{ts:0,task_id:12,latency:1},{ts:60,task_id:12,latency:1},{ts:0,task_id:3,latency:2},{ts:0,task_id:99,latency:3}]
 assert.deepEqual(probeOrder({ping, probes:{'3':'b','7':'c','12':'a'}}), [['12','a'],['3','b'],['7','c']])
 console.log('Probe order: panel order from ping rows, idle probes last passed')
+
+// 时间范围按 history_days；旧 Hub 没有该字段时沿用匿名 168、登录 2160
+const { historyHours, historyWindows, windowLabel } = await import('./transport.ts')
+assert.equal(historyHours(30,false),720); assert.equal(historyHours(1,true),24); assert.equal(historyHours(400,false),8760)
+assert.equal(historyHours(undefined,false),168); assert.equal(historyHours(undefined,true),2160); assert.equal(historyHours(0,false),168)
+const load = [4,24,168,720,2160]
+assert.deepEqual(historyWindows(load,168),[4,24,168])
+assert.deepEqual(historyWindows(load,720),[4,24,168,720])
+assert.deepEqual(historyWindows(load,744),[4,24,168,744])
+assert.deepEqual(historyWindows(load,8760),[4,24,168,720,2160,8760])
+assert.deepEqual(historyWindows([1,6,12,24,168,720],24),[1,6,12,24])
+assert.deepEqual(['4 小时','7 天','365 天'],[4,168,8760].map(windowLabel))
+console.log('History range: history_days, legacy caps and window buttons passed')
+
+// 货币：三字母代码走 Intl，旧值（符号或非三字母）兜住 Intl 的报错
+const { formatMoney, formatPrice, formatCurrencyValue } = await import('../utils/tagHelper.ts')
+assert.equal(formatMoney(5,'USD'),'US$5'); assert.equal(formatMoney(5.5,'HKD'),'HK$5.50')
+assert.equal(formatMoney(100,'CNY'),'¥100'); assert.equal(formatMoney(300,'jpy'),'JP¥300')
+assert.equal(formatMoney(12,'TWD'),'NT$12')
+assert.equal(formatMoney(5,'$'),'$5'); assert.equal(formatMoney(5.5,'美元'),'美元5.50')
+assert.equal(formatPrice(0,'USD'),'免费'); assert.equal(formatCurrencyValue(29.794,'USD'),'US$29.79')
+console.log('Currency: Intl codes and legacy fallback passed')

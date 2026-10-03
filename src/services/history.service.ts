@@ -95,6 +95,7 @@ export function normalizeStatusRecord(record: Partial<StatusRecord>): StatusReco
     disk_total: numberOrZero(record.disk_total),
     net_in: numberOrZero(record.net_in),
     net_out: numberOrZero(record.net_out),
+    cpu_peak: numberOrMissing(record.cpu_peak),
     net_in_peak: numberOrMissing(record.net_in_peak),
     net_out_peak: numberOrMissing(record.net_out_peak),
     net_total_up: numberOrMissing(record.net_total_up),
@@ -104,6 +105,7 @@ export function normalizeStatusRecord(record: Partial<StatusRecord>): StatusReco
     process: numberOrMissing(record.process),
     connections: numberOrMissing(record.connections),
     connections_udp: numberOrMissing(record.connections_udp),
+    step: numberOrMissing(record.step),
   }
 }
 

@@ -16,6 +16,8 @@ export interface RecordFormat {
   disk_total: number | null
   net_in: number | null
   net_out: number | null
+  /** 桶内最高 CPU；Hub 1.3.2 之前为 null */
+  cpu_peak: number | null
   /** 桶内最高速率；旧版 Hub 不提供时为 null */
   net_in_peak: number | null
   net_out_peak: number | null

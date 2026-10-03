@@ -104,8 +104,9 @@ function getMemoryPeak(records: StatusRecord[], fallbackTotal: number): number {
 
 function getCpuPeak(records: StatusRecord[], fallback: number): number {
   let peak = fallback || 0
+  // Hub 1.3.2 起长窗口按小时汇总，cpu 是均值，峰值取 cpu_peak
   for (const record of records)
-    peak = Math.max(peak, record.cpu || 0)
+    peak = Math.max(peak, Number.isFinite(record.cpu_peak) ? record.cpu_peak! : record.cpu || 0)
   return peak
 }
 

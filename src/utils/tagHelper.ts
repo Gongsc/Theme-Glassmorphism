@@ -361,6 +361,25 @@ export function isFreeNode(node: { price: number }): boolean {
   return isFreePrice(node.price)
 }
 
+const CURRENCY_CODE_REGEX = /^[A-Z]{3}$/
+
+/**
+ * 金额加货币：三字母代码交给 Intl（地区固定 zh-CN，美元、港币写作 US$、HK$，日元写作 JP¥），
+ * 不认识的代码 Intl 会原样当符号显示；Hub 1.3.1 之前可能存下非三字母的值或符号，Intl 会抛错，退回「符号 + 数字」
+ * 整数不带小数，其余保留两位
+ */
+export function formatMoney(amount: number, currency: string): string {
+  const fractionDigits = Number.isInteger(amount) ? 0 : 2
+  const code = currency.trim().toUpperCase()
+  if (CURRENCY_CODE_REGEX.test(code)) {
+    try {
+      return new Intl.NumberFormat('zh-CN', { style: 'currency', currency: code, minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits }).format(amount)
+    }
+    catch {}
+  }
+  return `${currency}${fractionDigits ? amount.toFixed(fractionDigits) : amount}`
+}
+
 /**
  * 格式化价格显示
  * @param price 价格
@@ -371,7 +390,7 @@ export function isFreeNode(node: { price: number }): boolean {
 export function formatPrice(price: number, currency: string = '￥', lang: 'zh-CN' | 'en-US' = 'zh-CN'): string {
   if (price === 0 || isFreePrice(price))
     return lang === 'zh-CN' ? '免费' : 'Free'
-  return `${currency}${price}`
+  return formatMoney(price, currency)
 }
 
 /**
@@ -395,8 +414,6 @@ export function formatPriceWithCycle(
   const cycleText = getBillingCycleText(billingCycle, lang)
   return `${priceText} / ${cycleText}`
 }
-
-const TRAILING_ZERO_REGEX = /\.?0+$/
 
 /**
  * 计算剩余价值（按剩余天数占计费周期的比例折算）
@@ -436,12 +453,10 @@ export function getRemainingValue(
  * 格式化金额（用于剩余价值显示），自动去除多余的小数 0
  * @param value 金额
  * @param currency 货币符号
- * @returns 金额显示文本，如 "$29.79"、"$0"
+ * @returns 金额显示文本，如 "US$29.79"、"US$0"
  */
 export function formatCurrencyValue(value: number, currency: string = '￥'): string {
-  const rounded = Math.round(value * 100) / 100
-  const text = rounded.toFixed(2).replace(TRAILING_ZERO_REGEX, '')
-  return `${currency}${text || '0'}`
+  return formatMoney(Math.round(value * 100) / 100 || 0, currency)
 }
 
 /**

@@ -20,6 +20,7 @@ import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
 import { getLoadChartPalette } from '@/utils/chartPalette'
 import { formatBytes, formatBytesSplit } from '@/utils/helper'
+import { historyWindows, windowLabel } from '@/monitor/transport'
 import { fillMissingTimePoints } from '@/utils/recordHelper'
 import { getSharedRpc } from '@/utils/rpc'
 import '@/utils/echarts' // 共享 ECharts 配置
@@ -100,38 +101,13 @@ const chartMargin = { top: 30, right: 24, bottom: 32, left: 56 }
 const chartMarginWithLegend = { top: 30, right: 24, bottom: 52, left: 56 }
 
 // 视图选项
-const presetViews = [
-  { label: '4 小时', hours: 4 },
-  { label: '1 天', hours: 24 },
-  { label: '7 天', hours: 168 },
-  { label: '30 天', hours: 720 },
-]
+const presetHours = [4, 24, 168, 720, 2160]
 
 // 可用视图列表
 const availableViews = computed(() => {
   const views: { label: string, hours?: number }[] = [{ label: '实时' }]
-  const maxHours = maxRecordPreserveTime.value
-
-  for (const v of presetViews) {
-    if (maxHours >= v.hours) {
-      views.push({ label: v.label, hours: v.hours })
-    }
-  }
-
-  const maxPreset = presetViews.at(-1)
-  if (maxPreset && maxHours > maxPreset.hours) {
-    const label = maxHours % 24 === 0
-      ? `${Math.floor(maxHours / 24)} 天`
-      : `${maxHours} 小时`
-    views.push({ label, hours: maxHours })
-  }
-  else if (maxHours > 4 && !presetViews.some(v => v.hours === maxHours)) {
-    const label = maxHours % 24 === 0
-      ? `${Math.floor(maxHours / 24)} 天`
-      : `${maxHours} 小时`
-    views.push({ label, hours: maxHours })
-  }
-
+  for (const hours of historyWindows(presetHours, maxRecordPreserveTime.value))
+    views.push({ label: windowLabel(hours), hours })
   views.push({ label: CUSTOM_VIEW_LABEL })
   return views
 })
@@ -221,6 +197,7 @@ function statusToRecordFormat(records: StatusRecord[]): RecordFormat[] {
     client: r.client,
     time: r.time,
     cpu: metricValue(r.cpu),
+    cpu_peak: metricValue(r.cpu_peak),
     ram: metricValue(r.ram),
     ram_total: metricValue(r.ram_total),
     disk: metricValue(r.disk),
@@ -327,6 +304,13 @@ const chartData = computed(() => {
     maxGap = minute * 30
   }
 
+  // Hub 1.3.2 起超过 7 天的窗口读小时汇总，点距（step）可能是数小时：网格不能比点距更密，否则一个点会被铺满多个格子
+  const step = remoteData.value.find(r => Number.isFinite(r.step))?.step ?? 0
+  if (step > intervalSec) {
+    intervalSec = step
+    maxGap = step * 2
+  }
+
   return fillMissingTimePoints(data, intervalSec, hours * 3600, maxGap)
 })
 
@@ -393,6 +377,9 @@ const baseYAxisConfig = computed(() => ({
 
 // ==================== 图表配置 ====================
 
+// Hub 1.3.2 起每个时间桶带最高 CPU：短时间占满在长窗口的平均值里几乎看不出，峰值用虚线补上
+const hasCpuPeak = computed(() => chartData.value.some(r => r.cpu_peak != null))
+
 // CPU 图表
 const cpuChartOption = computed(() => ({
   animation: false,
@@ -416,14 +403,27 @@ const cpuChartOption = computed(() => ({
       html += '<div style="display:flex;flex-direction:column;gap:4px">'
 
       for (const item of p) {
+        if (item.value == null)
+          continue
         const colorDot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${item.color};margin-right:8px;flex-shrink:0"></span>`
-        html += `<div style="display:flex;align-items:center">${colorDot}<span>CPU</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${item.value?.toFixed(1) ?? '-'}%</span></div>`
+        html += `<div style="display:flex;align-items:center">${colorDot}<span>${item.seriesName}</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${item.value?.toFixed(1) ?? '-'}%</span></div>`
       }
       html += '</div>'
       return html
     },
   },
-  grid: chartMargin,
+  legend: hasCpuPeak.value
+    ? {
+        data: ['CPU', '峰值'],
+        bottom: 4,
+        itemWidth: 12,
+        itemHeight: 12,
+        itemGap: 20,
+        icon: 'roundRect',
+        textStyle: { fontSize: 11, color: chartThemeColors.value.textSecondary },
+      }
+    : undefined,
+  grid: hasCpuPeak.value ? chartMarginWithLegend : chartMargin,
   xAxis: baseXAxisConfig.value,
   yAxis: {
     ...baseYAxisConfig.value,
@@ -455,6 +455,15 @@ const cpuChartOption = computed(() => ({
         },
       },
     },
+    ...(hasCpuPeak.value
+      ? [{
+          name: '峰值',
+          type: 'line',
+          data: chartData.value.map(r => r.cpu_peak),
+          showSymbol: false,
+          lineStyle: { width: 1, type: 'dashed' as const, opacity: 0.6, color: chartColors.primary, cap: 'round' as const },
+        }]
+      : []),
   ],
 }))
 
