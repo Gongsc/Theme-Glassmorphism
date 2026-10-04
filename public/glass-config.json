@@ -47,7 +47,7 @@
     "backgroundBlur": 30,
     "backgroundOverlay": 0,
     "homepageMultiPing": true,
-    "homepageMultiPingTaskIds": "浙江电信,浙江移动,浙江联通",
+    "homepageMultiPingTaskIds": "",
     "homepageMultiPingCount": 3
   }
 }
