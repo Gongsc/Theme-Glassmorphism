@@ -36,6 +36,7 @@ interface ClusterMarker {
   x: number
   y: number
   servers: number
+  onlineServers: number
   statusClass: string
 }
 
@@ -46,13 +47,14 @@ const {
   offlineServers,
 } = useNodeGeoClusters({ nodes: () => props.nodes })
 
+// 地区少时单列，多了改双列再逐级收紧
 const legendDensityClass = computed(() => {
   const count = regionClusters.value.length
   if (count > 36)
     return 'legend-ultra-dense'
-  if (count > 28)
+  if (count > 24)
     return 'legend-very-dense'
-  if (count > 20)
+  if (count > 11)
     return 'legend-dense'
   return ''
 })
@@ -90,7 +92,8 @@ const clusterMarkers = computed<ClusterMarker[]>(() => regionClusters.value.map(
     x: point.x,
     y: point.y,
     servers: cluster.servers,
-    statusClass: cluster.onlineServers > 0 ? 'is-online' : 'is-offline',
+    onlineServers: cluster.onlineServers,
+    statusClass: cluster.onlineServers === 0 ? 'is-offline' : cluster.onlineServers < cluster.servers ? 'is-partial' : 'is-online',
   }
 }))
 
@@ -99,7 +102,7 @@ const dotMarkers = computed<DotMarker[]>(() => clusterMarkers.value.map(marker =
   x: marker.x,
   y: marker.y,
   servers: marker.servers,
-  online: marker.statusClass === 'is-online',
+  online: marker.onlineServers > 0,
 })))
 
 // 点阵模式下节点点亮范围更大，国旗相应上移
@@ -137,8 +140,8 @@ const flagOffsetY = computed(() => props.dots ? 44 : 34)
           <g class="city-points">
             <template v-for="marker in clusterMarkers" :key="`${marker.id}-point`">
               <template v-if="!props.dots">
-                <circle :cx="marker.x" :cy="marker.y" r="11" class="city-region" :class="marker.statusClass" />
-                <circle :cx="marker.x" :cy="marker.y" r="3.8" class="city-dot" :class="marker.statusClass" />
+                <circle :cx="marker.x" :cy="marker.y" r="11" class="city-region" :class="{ 'is-offline': marker.onlineServers === 0 }" />
+                <circle :cx="marker.x" :cy="marker.y" r="3.8" class="city-dot" :class="{ 'is-offline': marker.onlineServers === 0 }" />
               </template>
               <image
                 v-if="marker.code"
@@ -153,33 +156,36 @@ const flagOffsetY = computed(() => props.dots ? 44 : 34)
             </template>
           </g>
         </svg>
-
-        <div class="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-full border border-sky-100/35 bg-background/55 px-2.5 py-1 text-[10px] font-medium text-muted-foreground shadow-lg shadow-sky-950/10 backdrop-blur-xl md:left-4 md:top-4">
-          <span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-300">
-            <span class="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgb(52_211_153/0.85)]" />
-            {{ onlineServers }} ONLINE
-          </span>
-          <span v-if="offlineServers > 0" class="inline-flex items-center gap-1 text-rose-500 dark:text-rose-300">
-            <span class="size-1.5 rounded-full bg-rose-400 shadow-[0_0_10px_rgb(251_113_133/0.7)]" />
-            {{ offlineServers }} OFF
-          </span>
-        </div>
       </div>
 
-      <div class="legend-panel" :class="legendDensityClass">
-        <div class="legend-title">
-          EARTH MAP
-          <span v-if="totalServers > 0">{{ onlineRate }}%</span>
-        </div>
-        <div v-for="marker in clusterMarkers" :key="marker.id" class="legend-item" :class="marker.statusClass">
-          <span class="legend-index">{{ marker.index }}</span>
-          <img v-if="marker.code" :src="`/images/flags/${marker.code}.svg`" :alt="marker.code" class="legend-flag">
-          <span class="legend-copy">
-            <span v-if="marker.label" class="legend-name">{{ marker.label }}</span>
-            <span class="legend-meta">{{ marker.meta }}</span>
-          </span>
-        </div>
-      </div>
+      <aside class="legend-panel" :class="legendDensityClass">
+        <header class="legend-head">
+          <div class="legend-head-row">
+            <span class="legend-label">节点分布</span>
+            <span class="legend-regions">{{ clusterMarkers.length }} 个地区</span>
+          </div>
+          <div class="legend-figure">
+            <span class="legend-value">{{ onlineServers }}</span>
+            <span class="legend-unit">/ {{ totalServers }} 在线</span>
+            <span v-if="totalServers > 0" class="legend-rate" :class="{ 'is-warn': offlineServers > 0 }">{{ onlineRate }}%</span>
+          </div>
+          <div class="legend-bar">
+            <span :style="{ width: `${onlineRate}%` }" />
+          </div>
+        </header>
+        <ul class="legend-list">
+          <li v-for="marker in clusterMarkers" :key="marker.id" class="legend-item" :class="marker.statusClass">
+            <img v-if="marker.code" :src="`/images/flags/${marker.code}.svg`" :alt="marker.code" class="legend-flag">
+            <span v-else class="legend-flag" />
+            <span class="legend-name">{{ marker.label || marker.meta }}</span>
+            <span v-if="marker.label" class="legend-code">{{ marker.meta }}</span>
+            <span class="legend-count" :title="`${marker.onlineServers}/${marker.servers} 在线`">
+              <span class="legend-status" />
+              {{ marker.onlineServers === marker.servers ? marker.servers : `${marker.onlineServers}/${marker.servers}` }}
+            </span>
+          </li>
+        </ul>
+      </aside>
     </div>
   </div>
 </template>
@@ -277,160 +283,210 @@ const flagOffsetY = computed(() => props.dots ? 44 : 34)
   filter: drop-shadow(0 3px 5px rgb(15 23 42 / 0.32));
 }
 
+/* 图例沿用主题统计卡片的写法：小号灰色标签 + 粗体数字，行内不加底色 */
 .legend-panel {
-  --legend-grid-columns: repeat(2, minmax(0, 1fr));
-  --legend-gap: 0.22rem;
-  --legend-item-columns: 1.05rem 0.85rem minmax(0, 1fr);
-  --legend-item-gap: 0.26rem;
-  --legend-item-radius: 0.55rem;
-  --legend-item-padding: 0.2rem 0.32rem;
-  --legend-index-size: 1rem;
-  --legend-index-font-size: 0.58rem;
-  --legend-flag-size: 0.86rem;
-  --legend-copy-line-height: 1.05;
-  --legend-name-font-size: 0.58rem;
-  --legend-meta-font-size: 0.46rem;
+  --legend-columns: 1;
+  --legend-row-height: 1.9rem;
+  --legend-font-size: 0.78rem;
+  --legend-flag-size: 1rem;
 
   position: relative;
   z-index: 14;
-  display: grid;
+  display: flex;
   min-width: 0;
   max-height: 100%;
-  align-content: start;
-  grid-template-columns: var(--legend-grid-columns);
-  gap: var(--legend-gap);
+  flex-direction: column;
   overflow: hidden;
-  padding: 0.7rem 0.75rem;
   background: rgb(255 255 255 / 0.08);
-  pointer-events: none;
 }
 
-.legend-title {
+.legend-head {
   display: flex;
-  grid-column: 1 / -1;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   gap: 0.45rem;
-  border: 1px solid rgb(255 255 255 / 0.36);
+  border-bottom: 1px solid rgb(15 23 42 / 0.08);
+  padding: 0.85rem 0.95rem 0.8rem;
+}
+
+.legend-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.legend-regions {
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.legend-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  line-height: 1;
+}
+
+.legend-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend-unit {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.legend-rate {
+  margin-left: auto;
+  color: rgb(5 150 105);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend-rate.is-warn {
+  color: rgb(217 119 6);
+}
+
+.legend-bar {
+  height: 0.25rem;
+  overflow: hidden;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.45);
-  box-shadow: 0 8px 18px rgb(15 23 42 / 0.1);
-  padding: 0.22rem 0.7rem;
-  color: rgb(14 116 144 / 0.86);
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.22em;
-  backdrop-filter: blur(12px) saturate(150%);
+  background: rgb(15 23 42 / 0.08);
 }
 
-.legend-title span {
-  color: rgb(5 150 105 / 0.95);
-  letter-spacing: normal;
+.legend-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgb(52 211 153 / 0.75), rgb(16 185 129));
+  transition: width 0.4s ease;
 }
 
-.legend-dense {
-  --legend-gap: 0.16rem;
-  --legend-item-columns: 0.92rem 0.74rem minmax(0, 1fr);
-  --legend-item-gap: 0.18rem;
-  --legend-item-radius: 0.45rem;
-  --legend-item-padding: 0.14rem 0.24rem;
-  --legend-index-size: 0.82rem;
-  --legend-index-font-size: 0.5rem;
-  --legend-flag-size: 0.74rem;
-  --legend-copy-line-height: 1;
-  --legend-name-font-size: 0.52rem;
-  --legend-meta-font-size: 0.4rem;
-}
-
-.legend-very-dense {
-  --legend-gap: 0.12rem;
-  --legend-item-columns: 0.82rem 0.66rem minmax(0, 1fr);
-  --legend-item-gap: 0.14rem;
-  --legend-item-radius: 0.38rem;
-  --legend-item-padding: 0.1rem 0.2rem;
-  --legend-index-size: 0.72rem;
-  --legend-index-font-size: 0.44rem;
-  --legend-flag-size: 0.66rem;
-  --legend-copy-line-height: 0.96;
-  --legend-name-font-size: 0.48rem;
-  --legend-meta-font-size: 0.36rem;
-}
-
-.legend-ultra-dense {
-  --legend-gap: 0.1rem;
-  --legend-item-columns: 0.74rem 0.58rem minmax(0, 1fr);
-  --legend-item-gap: 0.12rem;
-  --legend-item-radius: 0.34rem;
-  --legend-item-padding: 0.08rem 0.16rem;
-  --legend-index-size: 0.64rem;
-  --legend-index-font-size: 0.38rem;
-  --legend-flag-size: 0.58rem;
-  --legend-copy-line-height: 0.94;
-  --legend-name-font-size: 0.44rem;
-  --legend-meta-font-size: 0.32rem;
+.legend-list {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  align-content: start;
+  grid-template-columns: repeat(var(--legend-columns), minmax(0, 1fr));
+  column-gap: 0.75rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.35rem 0.55rem 0.6rem;
+  list-style: none;
+  scrollbar-width: thin;
 }
 
 .legend-item {
-  display: grid;
-  grid-template-columns: var(--legend-item-columns);
+  display: flex;
+  min-width: 0;
+  height: var(--legend-row-height);
   align-items: center;
-  gap: var(--legend-item-gap);
-  border: 1px solid rgb(255 255 255 / 0.38);
-  border-radius: var(--legend-item-radius);
-  background: rgb(255 255 255 / 0.44);
-  box-shadow: 0 8px 18px rgb(15 23 42 / 0.12);
-  padding: var(--legend-item-padding);
-  backdrop-filter: blur(12px) saturate(150%);
+  gap: 0.5rem;
+  border-radius: 0.45rem;
+  padding-inline: 0.4rem;
+  font-size: var(--legend-font-size);
+  transition: background-color 0.15s ease;
 }
 
-.legend-index {
-  display: inline-grid;
-  width: var(--legend-index-size);
-  height: var(--legend-index-size);
-  place-items: center;
-  border-radius: 999px;
-  background: rgb(253 224 71 / 0.92);
-  color: rgb(15 23 42 / 0.86);
-  font-size: var(--legend-index-font-size);
-  font-weight: 800;
-}
-
-.legend-item.is-offline .legend-index {
-  background: rgb(251 113 133 / 0.85);
-  color: white;
+.legend-item:hover {
+  background: rgb(255 255 255 / 0.35);
 }
 
 .legend-flag {
   width: var(--legend-flag-size);
-  height: var(--legend-flag-size);
-  border-radius: 0.12rem;
+  height: calc(var(--legend-flag-size) * 0.75);
+  flex: none;
+  border-radius: 0.15rem;
+  background: rgb(148 163 184 / 0.3);
+  box-shadow: 0 0 0 1px rgb(15 23 42 / 0.08);
   object-fit: cover;
 }
 
-.legend-copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  line-height: var(--legend-copy-line-height);
-}
-
 .legend-name {
+  min-width: 0;
   overflow: hidden;
-  color: rgb(15 23 42 / 0.84);
-  font-size: var(--legend-name-font-size);
-  font-weight: 800;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.legend-meta {
-  overflow: hidden;
-  color: rgb(71 85 105 / 0.76);
-  font-size: var(--legend-meta-font-size);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.legend-code {
+  flex: none;
+  color: var(--muted-foreground);
+  font-size: 0.85em;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+
+.legend-count {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend-status {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: rgb(16 185 129);
+  box-shadow: 0 0 0 3px rgb(16 185 129 / 0.16);
+}
+
+.legend-item.is-partial .legend-status {
+  background: rgb(245 158 11);
+  box-shadow: 0 0 0 3px rgb(245 158 11 / 0.18);
+}
+
+.legend-item.is-offline .legend-status {
+  background: rgb(244 63 94);
+  box-shadow: 0 0 0 3px rgb(244 63 94 / 0.16);
+}
+
+.legend-item.is-offline .legend-name,
+.legend-item.is-offline .legend-flag {
+  opacity: 0.55;
+}
+
+.legend-dense {
+  --legend-columns: 2;
+  --legend-row-height: 1.65rem;
+  --legend-font-size: 0.72rem;
+  --legend-flag-size: 0.9rem;
+}
+
+.legend-very-dense,
+.legend-ultra-dense {
+  --legend-columns: 2;
+  --legend-row-height: 1.35rem;
+  --legend-font-size: 0.66rem;
+  --legend-flag-size: 0.8rem;
+}
+
+.legend-ultra-dense {
+  --legend-row-height: 1.15rem;
+  --legend-font-size: 0.6rem;
+  --legend-flag-size: 0.7rem;
+}
+
+.legend-dense .legend-code,
+.legend-very-dense .legend-code,
+.legend-ultra-dense .legend-code {
+  display: none;
 }
 
 :global(.dark .earth-map) {
@@ -441,26 +497,28 @@ const flagOffsetY = computed(() => props.dots ? 44 : 34)
   background: rgb(15 23 42 / 0.18);
 }
 
-:global(.dark .legend-title),
-:global(.dark .legend-item) {
-  border-color: rgb(125 211 252 / 0.18);
-  background: rgb(15 23 42 / 0.58);
+:global(.dark .legend-head) {
+  border-bottom-color: rgb(255 255 255 / 0.08);
 }
 
-:global(.dark .legend-title) {
-  color: rgb(186 230 253 / 0.86);
+:global(.dark .legend-bar) {
+  background: rgb(255 255 255 / 0.1);
 }
 
-:global(.dark .legend-title span) {
-  color: rgb(110 231 183 / 0.92);
+:global(.dark .legend-rate) {
+  color: rgb(110 231 183);
 }
 
-:global(.dark .legend-name) {
-  color: rgb(255 255 255 / 0.9);
+:global(.dark .legend-rate.is-warn) {
+  color: rgb(252 211 77);
 }
 
-:global(.dark .legend-meta) {
-  color: rgb(186 230 253 / 0.66);
+:global(.dark .legend-item:hover) {
+  background: rgb(255 255 255 / 0.06);
+}
+
+:global(.dark .legend-flag) {
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1);
 }
 
 @media (max-width: 640px) {
@@ -482,41 +540,22 @@ const flagOffsetY = computed(() => props.dots ? 44 : 34)
     padding-inline: 0;
   }
 
-  .legend-panel {
-    --legend-grid-columns: 1fr;
-    --legend-gap: 0.16rem;
-    --legend-item-columns: 0.92rem 0.74rem minmax(0, 1fr);
-    --legend-item-gap: 0.18rem;
-    --legend-item-radius: 0.45rem;
-    --legend-item-padding: 0.14rem 0.24rem;
-    --legend-index-size: 0.82rem;
-    --legend-index-font-size: 0.5rem;
-    --legend-flag-size: 0.74rem;
-    --legend-copy-line-height: 1;
-    --legend-name-font-size: 0.52rem;
-    --legend-meta-font-size: 0.4rem;
-    padding: 0.55rem 0.5rem;
-  }
-
-  .legend-title {
-    padding: 0.18rem 0.45rem;
-    font-size: 0.54rem;
-    letter-spacing: 0.15em;
-  }
-
+  .legend-panel,
+  .legend-dense,
   .legend-very-dense,
   .legend-ultra-dense {
-    --legend-gap: 0.12rem;
-    --legend-item-columns: 0.78rem 0.62rem minmax(0, 1fr);
-    --legend-item-gap: 0.12rem;
-    --legend-item-radius: 0.36rem;
-    --legend-item-padding: 0.08rem 0.16rem;
-    --legend-index-size: 0.66rem;
-    --legend-index-font-size: 0.4rem;
-    --legend-flag-size: 0.62rem;
-    --legend-copy-line-height: 0.94;
-    --legend-name-font-size: 0.44rem;
-    --legend-meta-font-size: 0.32rem;
+    --legend-columns: 1;
+    --legend-row-height: 1.5rem;
+    --legend-font-size: 0.68rem;
+    --legend-flag-size: 0.85rem;
+  }
+
+  .legend-head {
+    padding: 0.7rem 0.75rem 0.65rem;
+  }
+
+  .legend-value {
+    font-size: 1.25rem;
   }
 }
 </style>
