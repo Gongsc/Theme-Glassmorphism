@@ -1,7 +1,7 @@
 import { useAppStore } from '@/stores/app'
 import { useNodesStore } from '@/stores/nodes'
 import { getSharedApi } from '@/utils/api'
-import { acceptNodes, mappedNodes, readNodes } from '@/monitor/transport'
+import { abortNodes, acceptNodes, mappedNodes, readNodes } from '@/monitor/transport'
 let socket: WebSocket | undefined
 let timer: ReturnType<typeof setTimeout> | undefined
 let reconnect: ReturnType<typeof setTimeout> | undefined
@@ -32,8 +32,21 @@ function connect() {
     // HTTP polling remains available when proxies do not support WebSocket.
   }
 }
+// 手机把切到后台的页面挂起时会悄悄掐断连接：切回来时 WebSocket 可能仍显示已连接却收不到数据，挂起前发出的请求也会失败，
+// 亮出「连接错误」。所以页面隐藏时停掉轮询和推送、中止在途请求；回到前台立即拉一次并重新连接
+function pause() {
+  generation++; clearTimeout(timer); clearTimeout(reconnect); abortNodes()
+  if (socket) {socket.onclose = null; socket.close(); socket = undefined}
+}
+function onVisibility() {
+  // 首次加载由 initApp 自己收尾，它结束时会启动轮询和推送
+  if (stopped || useAppStore().loading) return
+  pause()
+  if (!document.hidden) {connect(); void poll()}
+}
 export async function initApp() {
   destroyInitManager(); stopped = false
+  document.addEventListener('visibilitychange', onVisibility)
   const current = ++generation
   const store = useAppStore()
   store.loading = true
@@ -50,5 +63,5 @@ export async function initApp() {
   finally {store.loading = false; if (current === generation) void poll()}
 }
 export async function retryInitApp() {await initApp(); return !useAppStore().connectionError}
-export function destroyInitManager() {stopped = true; generation++; clearTimeout(timer); clearTimeout(reconnect); if (socket) {socket.onclose = null; socket.close(); socket = undefined}}
+export function destroyInitManager() {stopped = true; document.removeEventListener('visibilitychange', onVisibility); pause()}
 export function getInitManager() {return null}

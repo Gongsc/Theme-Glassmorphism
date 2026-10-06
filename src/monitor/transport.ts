@@ -3,6 +3,7 @@ import { mapNode } from './mapping.ts'
 let snapshot: Node[] = []
 let received = 0
 let pending: Promise<Node[]> | undefined
+let controller: AbortController | undefined
 const historyCache = new Map<string, { time: number, promise: Promise<History> }>()
 export async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   const timeout = AbortSignal.timeout(15000)
@@ -33,8 +34,15 @@ export function acceptNodes(nodes: Node[]) {
 }
 export async function readNodes() {
   if (Date.now() - received < 1500) return snapshot
-  pending ??= request<{ nodes: Node[] }>('/nodes').then(d => acceptNodes(d.nodes)).finally(() => { pending = undefined })
-  return pending
+  if (pending) return pending
+  controller = new AbortController()
+  const current: Promise<Node[]> = request<{ nodes: Node[] }>('/nodes', controller.signal).then(d => acceptNodes(d.nodes)).finally(() => { if (pending === current) pending = undefined })
+  return pending = current
+}
+// 页面切到后台时调用：挂起前发出的请求切回来多半已经失效，中止它，免得之后的轮询接着等它
+export function abortNodes() {
+  controller?.abort()
+  pending = undefined
 }
 export function mappedNodes(nodes: Node[]) {
   const entries = nodes.map(mapNode)
