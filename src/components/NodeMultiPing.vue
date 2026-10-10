@@ -17,6 +17,7 @@ const error = ref('')
 const loading = ref(true)
 let timer: ReturnType<typeof setTimeout> | undefined
 let sequence = 0
+let failures = 0
 const config = computed(() => store.publicSettings?.theme_settings ?? {})
 const rows = computed(() => buildPingRows(data.value.records, data.value.tasks, String(config.value.homepageMultiPingTaskIds ?? ''), Number(config.value.homepageMultiPingCount ?? 3)))
 const enabled = computed(() => props.enabled && active.value && visible.value === 'visible')
@@ -29,10 +30,11 @@ async function refresh() {
   try {
     const next = await loadPingRecordsWithTasks(1,150,props.uuid)
     if (current !== sequence) return
-    data.value=next;error.value=''
-  } catch {if (current === sequence) error.value='延迟数据暂不可用'}
+    data.value=next;error.value='';failures=0
+  } catch {if (current === sequence) {error.value='延迟数据暂不可用';failures++}}
   finally {
-    if (current === sequence) {loading.value=false;timer=setTimeout(refresh,60000)}
+    // 首次失败多是切回页面时连接还没恢复，5 秒后再试，不让提示挂满一分钟；连续失败再回到每分钟一次
+    if (current === sequence) {loading.value=false;timer=setTimeout(refresh,failures === 1 ? 5000 : 60000)}
   }
 }
 watch([() => props.uuid,enabled], () => {stop(); if (enabled.value) void refresh()}, {immediate:true})

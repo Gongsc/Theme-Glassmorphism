@@ -11,6 +11,7 @@ let generation = 0
 const FAILURE_LIMIT = 3
 let failures = 0
 let updatedAt = 0
+let resumedAt = 0
 function interval() {return Math.max(1000, useAppStore().dataUpdateInterval * 1000)}
 function apply(nodes: Awaited<ReturnType<typeof readNodes>>) {
   const data = mappedNodes(nodes)
@@ -52,7 +53,7 @@ function pause() {
   generation++; clearTimeout(timer); clearTimeout(reconnect); abortNodes(); failures = 0
   if (socket) {socket.onclose = null; socket.close(); socket = undefined}
 }
-function resume() {pause(); connect(); void poll()}
+function resume() {pause(); resumedAt = Date.now(); connect(); void poll()}
 function onVisibility() {
   // 首次加载由 initApp 自己收尾，它结束时会启动轮询和推送
   if (stopped || useAppStore().loading) return
@@ -60,10 +61,11 @@ function onVisibility() {
   else resume()
 }
 // 添加到主屏幕的 iOS Web App 从后台恢复时，visibilitychange 有时不触发或来得太晚；
-// 用 pageshow（含往返缓存恢复）和 focus 兜底：只要页面可见且数据已经超过两个刷新间隔没更新，就当作刚恢复
+// 用 pageshow（含往返缓存恢复）和 focus 兜底：只要页面可见且数据已经超过两个刷新间隔没更新，就当作刚恢复。
+// 切回标签页时 visibilitychange 和 focus 前后脚到达，刚恢复过就不再重来，否则会中止刚发出的请求，连带延迟卡片一起失败
 function onWake() {
   if (stopped || useAppStore().loading || document.hidden) return
-  if (Date.now() - updatedAt > interval() * 2) resume()
+  if (Date.now() - Math.max(updatedAt, resumedAt) > interval() * 2) resume()
 }
 export async function initApp() {
   destroyInitManager(); stopped = false
