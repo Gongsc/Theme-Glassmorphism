@@ -29,7 +29,7 @@ class Handler(BaseHTTPRequestHandler):
             step = max(unit, -(-hours*3600 // points // unit) * unit)
             n = hours*3600 // step; end = now - now % step
             ts = [end-(n-1-i)*step for i in range(n)]
-            data = dict(step=step,metrics=[dict(ts=t,cpu=30+15*math.sin(i/5),cpu_max=min(100,55+40*abs(math.sin(i/3))),mem_used=3*G,disk_used=20*G,net_rx=800000+300000*math.sin(i/4),net_tx=300000,net_rx_max=int(1400000+900000*abs(math.sin(i/3))),net_tx_max=int(450000+250000*abs(math.cos(i/4))),minutes=(now-t)//60 if i==n-1 else step//60) for i,t in enumerate(ts)],ping=[dict(task_id=task,ts=t,latency=base+8*math.sin(i/5),loss=0) for task,base in [(1,165),(2,157),(3,132)] for i,t in enumerate(ts)],probes={'1':'浙江电信','2':'浙江联通','3':'浙江移动'},loss={})
+            data = dict(step=step,metrics=[dict(ts=t,cpu=30+15*math.sin(i/5),cpu_max=min(100,55+40*abs(math.sin(i/3))),mem_used=3*G,disk_used=20*G,net_rx=800000+300000*math.sin(i/4),net_tx=300000,net_rx_max=int(1400000+900000*abs(math.sin(i/3))),net_tx_max=int(450000+250000*abs(math.cos(i/4))),swap_used=int(G*(.2+.1*abs(math.sin(i/7)))),tcp=round(36+12*math.sin(i/6)),udp=round(8+3*math.cos(i/5)),procs=round(128+10*math.sin(i/8)),minutes=(now-t)//60 if i==n-1 else step//60) for i,t in enumerate(ts)],ping=[dict(task_id=task,ts=t,latency=base+8*math.sin(i/5),loss=0) for task,base in [(1,165),(2,157),(3,132)] for i,t in enumerate(ts)],probes={'1':'浙江电信','2':'浙江联通','3':'浙江移动'},loss={})
         else:
             self.send_error(404); return
         self.send_response(200); self.send_header('Content-Type','application/json');self.end_headers();self.wfile.write(json.dumps(data).encode())

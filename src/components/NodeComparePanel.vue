@@ -5,6 +5,7 @@ import { useStorageAsync } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { safeStorage } from '@/monitor/storage'
 import { useAppStore } from '@/stores/app'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatUptimeWithFormat } from '@/utils/helper'
 import { getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
@@ -25,7 +26,7 @@ const props = defineProps<{
 const MAX_COMPARE_NODES = 4
 const appStore = useAppStore()
 const searchText = ref('')
-const selectedIds = useStorageAsync<string[]>('theme:node-compare:v1', [], localStorage)
+const selectedIds = useStorageAsync<string[]>('theme:node-compare:v1', [], safeStorage)
 const normalizedSelectedIds = computed(() => [...new Set(
   (Array.isArray(selectedIds.value) ? selectedIds.value : [])
     .filter((id): id is string => typeof id === 'string' && Boolean(id.trim())),

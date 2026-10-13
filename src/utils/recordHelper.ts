@@ -21,6 +21,12 @@ export interface RecordFormat {
   /** 桶内最高速率；旧版 Hub 不提供时为 null */
   net_in_peak: number | null
   net_out_peak: number | null
+  /** Swap、TCP/UDP 连接数、进程数的桶内平均；Hub 1.4.1 之前为 null */
+  swap: number | null
+  swap_total: number | null
+  connections: number | null
+  connections_udp: number | null
+  process: number | null
 }
 
 type AnyRecord = Record<string, any>

@@ -530,14 +530,14 @@
           "label": "自定义"
         }
       ],
-      "help": "默认=CPU、内存、磁盘、网络；精简=CPU、内存、网络；自定义读取下方 keys。",
+      "help": "默认=CPU、内存、磁盘、网络、连接、进程；精简=CPU、内存、网络；自定义读取下方 keys。",
       "label": "详情负载图方案"
     },
     {
       "key": "chartDashboardTemplate",
       "type": "text",
-      "default": "cpu\nmemory\ndisk\nnetwork",
-      "help": "逗号、空格或换行分隔。 cpu=CPU； memory=内存/总量； disk=磁盘/总量； network=实时上下行。旧 JSON 仍兼容。",
+      "default": "cpu\nmemory\ndisk\nnetwork\nconnections\nprocess",
+      "help": "逗号、空格或换行分隔。 cpu=CPU； memory=内存/Swap 及总量； disk=磁盘/总量； network=实时上下行； connections=TCP/UDP 连接数； process=进程数。连接数、进程数和 Swap 曲线需要 Hub 1.4.1 及以上，较早版本不显示。旧 JSON 仍兼容。",
       "label": "自定义详情图表 keys"
     },
     {

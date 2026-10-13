@@ -5,6 +5,7 @@ import { useStorageAsync } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { resolveSiteIcon } from '@/monitor/siteIcon'
+import { safeStorage } from '@/monitor/storage'
 import { getAuthSession, requirePermission, setAuthSessionFromLogin, verifyLogin } from '@/services/auth.service'
 
 export type ThemeMode = 'auto' | 'light' | 'dark'
@@ -89,6 +90,8 @@ export type ChartDashboardCardKey
     | 'memory'
     | 'disk'
     | 'network'
+    | 'connections'
+    | 'process'
 
 export interface GlassCustomColors {
   lightCard: string
@@ -227,7 +230,7 @@ const DEFAULT_NODE_LIST_METADATA_FIELDS: NodeListMetadataField[] = [
   'region',
 ]
 
-const DEFAULT_CHART_DASHBOARD_CARDS: ChartDashboardCardKey[] = ['cpu', 'memory', 'disk', 'network']
+const DEFAULT_CHART_DASHBOARD_CARDS: ChartDashboardCardKey[] = ['cpu', 'memory', 'disk', 'network', 'connections', 'process']
 const ALL_CHART_DASHBOARD_CARDS = [
   ...DEFAULT_CHART_DASHBOARD_CARDS,
 ] as const satisfies readonly ChartDashboardCardKey[]
@@ -441,6 +444,8 @@ const CHART_DASHBOARD_LABEL_ALIASES: Record<string, ChartDashboardCardKey> = {
   内存: 'memory',
   硬盘: 'disk',
   网络: 'network',
+  连接: 'connections',
+  进程: 'process',
 }
 
 const HOME_QUICK_CONTROL_PRESET_ALIASES: Record<string, HomeQuickControlPreset> = {
@@ -793,11 +798,11 @@ const useAppStore = defineStore('app', () => {
   const loading = ref<boolean>(true)
 
   // 使用 VueUse 的 useStorageAsync 实现自动持久化
-  const themeMode = useStorageAsync<ThemeMode>('themeMode', 'auto', localStorage)
+  const themeMode = useStorageAsync<ThemeMode>('themeMode', 'auto', safeStorage)
   const lang = ref<Lang>('zh-CN')
   const publicSettings = ref<PublicSettings>()
-  const nodeSelectedGroup = useStorageAsync<string>('monitor:nodeSelectedGroup:v2', 'all', localStorage)
-  const favoriteNodeIds = useStorageAsync<string[]>('theme:favorite-nodes:v1', [], localStorage)
+  const nodeSelectedGroup = useStorageAsync<string>('monitor:nodeSelectedGroup:v2', 'all', safeStorage)
+  const favoriteNodeIds = useStorageAsync<string[]>('theme:favorite-nodes:v1', [], safeStorage)
   const isLoggedIn = ref<boolean>(getAuthSession().authenticated)
   const authStatus = ref(getAuthSession().status)
   const privateFeaturesAllowed = computed(() => authStatus.value === 'authenticated')
@@ -829,7 +834,7 @@ const useAppStore = defineStore('app', () => {
   const homeScrollPosition = ref<number>(0)
 
   // 使用 null 表示未设置，等待主题配置加载后决定
-  const storedViewMode = useStorageAsync<NodeViewMode | null>('nodeViewMode', null, localStorage)
+  const storedViewMode = useStorageAsync<NodeViewMode | null>('nodeViewMode', null, safeStorage)
 
   const beijingTimeTick = ref(Date.now())
   if (typeof window !== 'undefined') {

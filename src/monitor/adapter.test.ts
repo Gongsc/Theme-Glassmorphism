@@ -54,7 +54,7 @@ globalThis.fetch = (async (url: string | URL | Request) => {
   requests.push(String(url))
   return new Response(JSON.stringify({
     step: 3600,
-    metrics: [{ts:1700000000,cpu:25,cpu_max:93,mem_used:200,disk_used:500,net_rx:120,net_tx:60,net_rx_max:480,net_tx_max:90,minutes:60},{ts:1700000060,cpu:25,mem_used:200,disk_used:500,net_rx:100,net_tx:50}],
+    metrics: [{ts:1700000000,cpu:25,cpu_max:93,mem_used:200,disk_used:500,net_rx:120,net_tx:60,net_rx_max:480,net_tx_max:90,swap_used:3,tcp:12,udp:4,procs:150,minutes:60},{ts:1700000060,cpu:25,mem_used:200,disk_used:500,net_rx:100,net_tx:50}],
     ping: [{ts:1700000000,task_id:1,latency:20,loss:50},{ts:1700000060,task_id:1,latency:null,loss:100}],
     probes: {'1':'Probe'}, loss: {'1':7.69},
   }),{status:200,headers:{'content-type':'application/json'}})
@@ -70,6 +70,8 @@ try {
   assert.equal('net_in_peak' in history.records[1]!,false)
   assert.equal(history.records[0]?.cpu_peak,93); assert.equal('cpu_peak' in history.records[1]!,false)
   assert.equal(history.records[1]?.step,3600)
+  assert.deepEqual([history.records[0]?.swap,history.records[0]?.connections,history.records[0]?.connections_udp,history.records[0]?.process],[3,12,4,150])
+  assert.ok(['swap','connections','connections_udp','process'].every(k => !(k in history.records[1]!)))
   assert.equal('net_total_up' in history.records[0]!,false)
   assert.ok(requests.every(url => url.startsWith('/api/nodes/7/metrics?')))
   await assert.rejects(dispatch('admin:getLogs'), /Monitor 不提供/)

@@ -191,7 +191,7 @@ const rpc = getSharedRpc()
 
 // ==================== 数据获取 ====================
 
-// Monitor 历史只提供 CPU、内存、磁盘和网络；其余字段不进入图表。
+// Monitor 历史提供 CPU、内存、磁盘、网络，Hub 1.4.1 起另有 Swap、连接数和进程数；负载没有历史，不进入图表。
 function statusToRecordFormat(records: StatusRecord[]): RecordFormat[] {
   return records.map(r => ({
     client: r.client,
@@ -206,6 +206,11 @@ function statusToRecordFormat(records: StatusRecord[]): RecordFormat[] {
     net_out: metricValue(r.net_out),
     net_in_peak: metricValue(r.net_in_peak),
     net_out_peak: metricValue(r.net_out_peak),
+    swap: metricValue(r.swap),
+    swap_total: metricValue(r.swap_total),
+    connections: metricValue(r.connections),
+    connections_udp: metricValue(r.connections_udp),
+    process: metricValue(r.process),
   }))
 }
 
@@ -467,10 +472,13 @@ const cpuChartOption = computed(() => ({
   ],
 }))
 
+// Hub 1.4.1 起历史带 Swap；未配置 Swap 的节点（总量为 0）不画，避免多出两条贴底的线
+const hasSwap = computed(() => (nodeInfo.value?.swap_total ?? 0) > 0 && chartData.value.some(r => r.swap != null))
+
 // 内存图表
 const memoryChartOption = computed(() => ({
   animation: false,
-  color: [chartColors.primary, chartColors.quinary],
+  color: [chartColors.primary, chartColors.quinary, chartColors.secondary, chartColors.quaternary],
   tooltip: {
     ...baseTooltipConfig.value,
     formatter: (params: unknown) => {
@@ -487,6 +495,9 @@ const memoryChartOption = computed(() => ({
       const ramUsed = record.ram ?? 0
       const ramTotal = record.ram_total ?? nodeInfo.value?.mem_total ?? 0
       const ramPercent = ramTotal > 0 ? ((ramUsed / ramTotal) * 100).toFixed(1) : '0'
+      const swapUsed = record.swap ?? 0
+      const swapTotal = record.swap_total ?? nodeInfo.value?.swap_total ?? 0
+      const swapPercent = swapTotal > 0 ? ((swapUsed / swapTotal) * 100).toFixed(1) : '0'
 
       const timeStr = formatTimeForTooltip(record.time, effectiveHistoryHours.value)
       let html = `<div style="font-weight:600;margin-bottom:6px;color:${chartThemeColors.value.textSecondary}">${timeStr}</div>`
@@ -500,13 +511,19 @@ const memoryChartOption = computed(() => ({
         else if (item.seriesName === 'RAM 总量') {
           html += `<div style="display:flex;align-items:center">${colorDot}<span>RAM 总量</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${formatBytes(ramTotal)}</span></div>`
         }
+        else if (item.seriesName === 'Swap' && record.swap != null) {
+          html += `<div style="display:flex;align-items:center">${colorDot}<span>Swap</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${formatBytes(swapUsed)} (${swapPercent}%)</span></div>`
+        }
+        else if (item.seriesName === 'Swap 总量') {
+          html += `<div style="display:flex;align-items:center">${colorDot}<span>Swap 总量</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${formatBytes(swapTotal)}</span></div>`
+        }
       }
       html += '</div>'
       return html
     },
   },
   legend: {
-    data: ['RAM', 'RAM 总量'],
+    data: hasSwap.value ? ['RAM', 'RAM 总量', 'Swap', 'Swap 总量'] : ['RAM', 'RAM 总量'],
     bottom: 4,
     itemWidth: 10,
     itemHeight: 8,
@@ -552,6 +569,24 @@ const memoryChartOption = computed(() => ({
       showSymbol: false,
       lineStyle: { width: 1.2, type: 'dashed' as const, color: chartColors.quinary, cap: 'round' as const },
     },
+    ...(hasSwap.value
+      ? [
+          {
+            name: 'Swap',
+            type: 'line',
+            data: chartData.value.map(r => r.swap),
+            showSymbol: false,
+            lineStyle: { width: 1.5, color: chartColors.secondary, cap: 'round' as const },
+          },
+          {
+            name: 'Swap 总量',
+            type: 'line',
+            data: chartData.value.map(r => r.swap == null ? null : r.swap_total ?? nodeInfo.value?.swap_total ?? null),
+            showSymbol: false,
+            lineStyle: { width: 1.2, type: 'dashed' as const, color: chartColors.quaternary, cap: 'round' as const },
+          },
+        ]
+      : []),
   ],
 }))
 
@@ -738,6 +773,101 @@ const networkChartOption = computed(() => ({
   ],
 }))
 
+// 连接数与进程数：Hub 1.4.1 起才有历史，旧版 Hub 整张卡片不显示
+const hasConnections = computed(() => chartData.value.some(r => r.connections != null || r.connections_udp != null))
+const hasProcess = computed(() => chartData.value.some(r => r.process != null))
+
+function countTooltip(params: unknown): string {
+  const p = params as Array<{ dataIndex: number, seriesName: string, value: number | null, color: string }>
+  const firstParam = p[0]
+  const record = firstParam ? chartData.value[firstParam.dataIndex] : undefined
+  if (!firstParam || !record)
+    return ''
+
+  const timeStr = formatTimeForTooltip(record.time, effectiveHistoryHours.value)
+  let html = `<div style="font-weight:600;margin-bottom:6px;color:${chartThemeColors.value.textSecondary}">${timeStr}</div>`
+  html += '<div style="display:flex;flex-direction:column;gap:4px">'
+  for (const item of p) {
+    if (item.value == null)
+      continue
+    const colorDot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${item.color};margin-right:8px;flex-shrink:0"></span>`
+    html += `<div style="display:flex;align-items:center">${colorDot}<span>${item.seriesName}</span><span style="margin-left:auto;font-weight:600;margin-left:16px">${Math.round(item.value)}</span></div>`
+  }
+  html += '</div>'
+  return html
+}
+
+const countYAxisConfig = computed(() => ({
+  ...baseYAxisConfig.value,
+  nameTextStyle: { color: chartThemeColors.value.textSecondary, padding: [0, 40, 0, 0] },
+  min: 0,
+  minInterval: 1,
+  axisLabel: {
+    ...baseYAxisConfig.value.axisLabel,
+    formatter: (val: number) => Math.round(val).toString(),
+  },
+}))
+
+// 连接数图表
+const connectionsChartOption = computed(() => ({
+  animation: false,
+  color: [chartColors.primary, chartColors.tertiary],
+  tooltip: {
+    ...baseTooltipConfig.value,
+    formatter: (params: unknown) => countTooltip(params),
+  },
+  legend: {
+    data: ['TCP', 'UDP'],
+    bottom: 4,
+    itemWidth: 12,
+    itemHeight: 12,
+    itemGap: 20,
+    icon: 'roundRect',
+    textStyle: { fontSize: 11, color: chartThemeColors.value.textSecondary },
+  },
+  grid: chartMarginWithLegend,
+  xAxis: baseXAxisConfig.value,
+  yAxis: { ...countYAxisConfig.value, name: '连接数' },
+  series: [
+    {
+      name: 'TCP',
+      type: 'line',
+      data: chartData.value.map(r => r.connections),
+      showSymbol: false,
+      lineStyle: { width: 1.5, color: chartColors.primary, cap: 'round' as const },
+    },
+    {
+      name: 'UDP',
+      type: 'line',
+      data: chartData.value.map(r => r.connections_udp),
+      showSymbol: false,
+      lineStyle: { width: 1.5, color: chartColors.tertiary, cap: 'round' as const },
+    },
+  ],
+}))
+
+// 进程数图表
+const processChartOption = computed(() => ({
+  animation: false,
+  color: [chartColors.quaternary],
+  tooltip: {
+    ...baseTooltipConfig.value,
+    formatter: (params: unknown) => countTooltip(params),
+  },
+  grid: chartMargin,
+  xAxis: baseXAxisConfig.value,
+  yAxis: { ...countYAxisConfig.value, name: '进程' },
+  series: [
+    {
+      name: '进程数',
+      type: 'line',
+      data: chartData.value.map(r => r.process),
+      showSymbol: false,
+      lineStyle: { width: 1.5, color: chartColors.quaternary, cap: 'round' as const },
+    },
+  ],
+}))
+
 const chartDashboardCards = computed(() => appStore.chartDashboardTemplate.cards)
 
 function isChartCardEnabled(key: ChartDashboardCardKey): boolean {
@@ -867,7 +997,7 @@ onMounted(() => {
         <!-- 内存卡片 -->
         <CardX v-if="isChartCardEnabled('memory')" size="small" class="bg-background/50 border-none hover:bg-background transition-all rounded-md" :style="getChartCardStyle('memory')">
           <template #header>
-            <MetricChartHeader title="内存" icon="tabler:database" tone="violet">
+            <MetricChartHeader :title="hasSwap ? '内存与 Swap' : '内存'" icon="tabler:database" tone="violet">
               <div class="text-xs flex gap-1 items-baseline">
                 <template v-if="latestStatus?.ram != null">
                   <span>{{ formatBytesSplit(latestStatus.ram).value }}</span>
@@ -939,6 +1069,34 @@ onMounted(() => {
           </template>
           <div class="h-48 xl:h-56">
             <VChart :option="networkChartOption" autoresize />
+          </div>
+        </CardX>
+
+        <!-- 连接数卡片 -->
+        <CardX v-if="isChartCardEnabled('connections') && hasConnections" size="small" class="bg-background/50 border-none hover:bg-background transition-all rounded-md" data-load-chart-card="connections" :style="getChartCardStyle('connections')">
+          <template #header>
+            <MetricChartHeader title="网络连接" icon="tabler:binary-tree" tone="amber">
+              <div class="text-xs flex gap-1 items-baseline">
+                <span>TCP {{ latestStatus?.connections != null ? Math.round(latestStatus.connections) : '-' }}</span>
+                <span>·</span>
+                <span>UDP {{ latestStatus?.connections_udp != null ? Math.round(latestStatus.connections_udp) : '-' }}</span>
+              </div>
+            </MetricChartHeader>
+          </template>
+          <div class="h-48 xl:h-56">
+            <VChart :option="connectionsChartOption" autoresize />
+          </div>
+        </CardX>
+
+        <!-- 进程卡片 -->
+        <CardX v-if="isChartCardEnabled('process') && hasProcess" size="small" class="bg-background/50 border-none hover:bg-background transition-all rounded-md" data-load-chart-card="process" :style="getChartCardStyle('process')">
+          <template #header>
+            <MetricChartHeader title="进程" icon="tabler:activity" tone="slate">
+              <span class="text-xs">{{ latestStatus?.process != null ? Math.round(latestStatus.process) : '-' }}</span>
+            </MetricChartHeader>
+          </template>
+          <div class="h-48 xl:h-56">
+            <VChart :option="processChartOption" autoresize />
           </div>
         </CardX>
       </div>
