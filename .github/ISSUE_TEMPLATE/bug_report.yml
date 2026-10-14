@@ -1,0 +1,103 @@
+name: 问题反馈
+description: 报告主题显示异常、功能错误或兼容问题
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！提交前请先确认已升级到 [最新版本](https://github.com/Gongsc/Theme-Glassmorphism/releases)，并搜索是否已有相同的 Issue。
+        若问题与主题无关（如探针数据采集、Hub 后台），请前往 [极简探针 Monitor](https://github.com/monitor-probe/monitor) 反馈。
+
+  - type: input
+    id: theme-version
+    attributes:
+      label: 主题版本
+      description: 可在后台「主题」页的主题卡片上查看。
+      placeholder: 例如 1.4.5
+    validations:
+      required: true
+
+  - type: input
+    id: hub-version
+    attributes:
+      label: 极简探针 Hub 版本
+      placeholder: 例如 1.4.1
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: 浏览器与设备
+      description: 如问题仅在某些设备上出现，请一并说明。
+      placeholder: 例如 iOS 18 Safari（添加到主屏幕）、Windows 11 Chrome 130
+    validations:
+      required: true
+
+  - type: dropdown
+    id: login
+    attributes:
+      label: 是否登录
+      description: 管理员登录后与访客看到的内容不同（如节点 IP、私有备注、主题设置面板）。
+      options:
+        - 访客（未登录）时出现
+        - 管理员登录后出现
+        - 两种情况都会出现
+        - 不确定
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 请描述实际看到的现象，以及期望的结果。
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开首页
+        2. 点击……
+        3. 出现……
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: 主题配置
+      description: |
+        多数显示问题与站点设置有关，附上配置可以帮助快速复现。导出方法：
+
+        1. 以管理员身份登录极简探针后台，然后打开主题首页；
+        2. 点击页面右上角的「主题设置」按钮（调节滑块图标，仅登录后显示）；
+        3. 在设置面板底部点击「导出配置」，浏览器会下载 `glass-config.json`；
+        4. 用文本编辑器打开该文件，将全部内容粘贴到下方。
+
+        粘贴前请检查并删除不希望公开的内容，例如公告文本、自定义链接或背景地址。若 `siteIconUrl` 是很长的 `data:image/...` 内容（上传的站点图标），可替换为 `"data:..."`。
+        如未修改过任何设置，可填写「默认配置」。
+      render: json
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图或录屏
+      description: 可直接拖入图片。请遮挡节点 IP、域名等敏感信息。
+    validations:
+      required: false
+
+  - type: textarea
+    id: console
+    attributes:
+      label: 控制台报错
+      description: 如有，可在浏览器开发者工具（F12）的 Console 中复制报错信息。
+      render: text
+    validations:
+      required: false

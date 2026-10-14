@@ -1,0 +1,35 @@
+name: 功能建议
+description: 建议新功能或改进现有功能
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        主题的数据全部来自极简探针 Hub。Hub 未提供的数据（如 GPU、温度、自定义标签、ASN 信息等）主题无法显示，此类需求请先向 [极简探针 Monitor](https://github.com/monitor-probe/monitor) 提出。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 使用场景
+      description: 希望解决什么问题，或在什么情况下需要这个功能？
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 期望的效果
+      description: 可附上草图、截图或其他主题的参考。
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: 当前主题配置（可选）
+      description: |
+        如建议与现有设置项有关，可附上配置：管理员登录后打开主题首页，点击右上角「主题设置」按钮，在面板底部点击「导出配置」，将下载的 `glass-config.json` 内容粘贴到此处。粘贴前请删除不希望公开的内容。
+      render: json
+    validations:
+      required: false

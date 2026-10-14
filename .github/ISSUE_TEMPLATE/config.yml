@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 极简探针 Monitor
+    url: https://github.com/monitor-probe/monitor/issues
+    about: 探针数据采集、Hub 后台及接口相关的问题请在此反馈
