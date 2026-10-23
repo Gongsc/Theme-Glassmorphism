@@ -13,7 +13,6 @@ const store = useAppStore()
 const visible = useDocumentVisibility()
 const active = ref(true)
 const data = ref<{records:PingRecord[];tasks:PingTaskInfo[]}>({records:[],tasks:[]})
-const error = ref('')
 const loading = ref(true)
 let timer: ReturnType<typeof setTimeout> | undefined
 let sequence = 0
@@ -30,11 +29,12 @@ async function refresh() {
   try {
     const next = await loadPingRecordsWithTasks(1,150,props.uuid)
     if (current !== sequence) return
-    data.value=next;error.value='';failures=0
-  } catch {if (current === sequence) {error.value='延迟数据暂不可用';failures++}}
+    data.value=next;loading.value=false;failures=0
+  } catch {if (current === sequence) failures++}
   finally {
-    // 首次失败多是切回页面时连接还没恢复，5 秒后再试，不让提示挂满一分钟；连续失败再回到每分钟一次
-    if (current === sequence) {loading.value=false;timer=setTimeout(refresh,failures === 1 ? 5000 : 60000)}
+    // 读取失败不提示：照常显示已有数据（还没有数据就保持「正在读取」），后台按 5、10、20、40 秒退避重试，最长回到每分钟一次。
+    // 失败多是切回页面时连接还没恢复，或者某次请求偶发超时，下一次通常就能拿到
+    if (current === sequence) timer=setTimeout(refresh,failures ? Math.min(60000,5000 * 2 ** (failures - 1)) : 60000)
   }
 }
 watch([() => props.uuid,enabled], () => {stop(); if (enabled.value) void refresh()}, {immediate:true})
@@ -51,7 +51,6 @@ const tooltip = (bar: {time:string;latency:number|null;loss:number|null}, metric
 </script>
 <template>
   <div class="multi-ping" :class="{'multi-ping--sparkline':sparkline}" data-multi-ping @keydown.stop>
-    <p v-if="error" class="multi-ping-note" role="status">{{ error }}{{ rows.length ? '，显示上次数据' : '' }}</p>
     <template v-if="!sparkline"><button v-for="row in rows" :key="row.id" type="button" class="multi-ping-row" :aria-label="`${name} ${row.name} 延迟与丢包详情`" @click.stop="emit('open')">
       <div class="multi-ping-half">
         <div class="multi-ping-label"><span :title="row.name">{{ row.name }}</span><strong :style="{'--ping-value-color':pingColor(row.latency,'latency')}">{{ row.latency !== null ? Math.round(row.latency) : row.timedOut ? '超时' : '—' }}<small v-if="row.latency !== null"> ms</small></strong></div>
@@ -71,7 +70,7 @@ const tooltip = (bar: {time:string;latency:number|null;loss:number|null}, metric
         <strong class="spark-value spark-loss" :title="`${row.name} 最近 1 小时窗口丢包率`" :style="{'--ping-value-color':pingColor(row.loss,'loss')}"><small v-if="row.loss !== null">丢包 </small>{{ row.loss === null ? '—' : `${row.loss.toFixed(1)}%` }}</strong>
       </button>
     </template>
-    <p v-if="!rows.length" class="multi-ping-note">{{ loading ? '正在读取探测线路…' : error ? '请稍后重试' : '暂无探测线路或采样' }}</p>
+    <p v-if="!rows.length" class="multi-ping-note">{{ loading ? '正在读取探测线路…' : '暂无探测线路或采样' }}</p>
   </div>
 </template>
 <style scoped>
