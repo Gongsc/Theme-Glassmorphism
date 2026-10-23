@@ -5,9 +5,20 @@ let received = 0
 let pending: Promise<Node[]> | undefined
 let controller: AbortController | undefined
 const historyCache = new Map<string, { time: number, promise: Promise<History> }>()
+// 合并中止信号而不依赖 AbortSignal.any：该 API 只有 iOS 17.4+ 的 Safari 才有，低版本调用即抛 TypeError，
+// 请求根本发不出去（旧 iOS 上节点数据必失败就是这个原因；不带 signal 的请求不走这里，所以设置和用户信息不受影响）。
+// 手动把每个信号联动到一个 AbortController 上，任一信号中止都跟着中止
+function combineSignals(signals: AbortSignal[]): AbortSignal {
+  const controller = new AbortController()
+  for (const signal of signals) {
+    if (signal.aborted) {controller.abort(); break}
+    signal.addEventListener('abort', () => controller.abort(), { once: true })
+  }
+  return controller.signal
+}
 export async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   const timeout = AbortSignal.timeout(15000)
-  const response = await fetch(`/api${path}`, { signal: signal ? AbortSignal.any([signal, timeout]) : timeout, credentials: 'same-origin' })
+  const response = await fetch(`/api${path}`, { signal: signal ? combineSignals([signal, timeout]) : timeout, credentials: 'same-origin' })
   if (response.status === 401) location.assign('/admin/')
   if (!response.ok) throw new Error(`Monitor API ${response.status}`)
   return response.json()
