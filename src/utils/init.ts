@@ -77,14 +77,28 @@ export async function initApp() {
   store.loading = true
   try {
     const api = getSharedApi()
-    const [settings, me, nodes] = await Promise.all([api.getPublicSettings(), api.getMe(), readNodes()])
-    if (current !== generation) return
-    store.publicSettings = settings
-    store.updateLoginState(me.logged_in, me)
-    document.title = settings.sitename
-    apply(nodes)
-    connect()
-  } catch {store.connectionError = true}
+    // 启动加载与轮询共用同一套容错：手动刷新同样会撞上 iOS 网络未就绪的头一两秒，
+    // 首个请求失败不等于连不上服务器。按轮询的 1s、2s 节奏快速重试，
+    // 连续失败到 FAILURE_LIMIT 才亮「连接错误」，免得一刷新必现误报、而轮询随后又自行恢复
+    for (;;) {
+      try {
+        const [settings, me, nodes] = await Promise.all([api.getPublicSettings(), api.getMe(), readNodes()])
+        if (current !== generation) return
+        store.publicSettings = settings
+        store.updateLoginState(me.logged_in, me)
+        document.title = settings.sitename
+        apply(nodes)
+        connect()
+        break
+      } catch {
+        if (current !== generation) return
+        failures++
+        if (failures >= FAILURE_LIMIT) {store.connectionError = true; break}
+        await new Promise(resolve => setTimeout(resolve, failures * 1000))
+        if (current !== generation) return
+      }
+    }
+  }
   finally {store.loading = false; if (current === generation) void poll()}
 }
 export async function retryInitApp() {await initApp(); return !useAppStore().connectionError}
