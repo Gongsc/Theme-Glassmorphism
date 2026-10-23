@@ -78,6 +78,26 @@ try {
 } finally {globalThis.fetch = oldFetch}
 console.log('Monitor history: endpoints, timeout samples, exact window loss and missing historical metrics and bucket peaks passed')
 
+// iOS 16（Safari 17.4 之前）没有 AbortSignal.any：带 signal 的请求照样发出，调用方中止仍能取消 fetch，并带上原因
+const { request } = await import('./transport.ts')
+const signalAny = Object.getOwnPropertyDescriptor(AbortSignal, 'any')
+Reflect.deleteProperty(AbortSignal, 'any')
+globalThis.fetch = ((_url: string | URL | Request, init?: RequestInit) => new Promise((resolve, reject) => {
+  const signal = init!.signal!
+  if (signal.aborted) return reject(signal.reason)
+  signal.addEventListener('abort', () => reject(signal.reason))
+  if (String(_url) === '/api/nodes') resolve(new Response('{"nodes":[]}', {status:200}))
+})) as typeof fetch
+try {
+  assert.deepEqual(await request('/nodes', new AbortController().signal), {nodes: []})
+  const outer = new AbortController()
+  const pending = request('/me', outer.signal)
+  outer.abort(new Error('页面切到后台'))
+  await assert.rejects(pending, /页面切到后台/)
+  await assert.rejects(request('/me', AbortSignal.abort(new Error('已中止'))), /已中止/)
+} finally {globalThis.fetch = oldFetch; if (signalAny) Object.defineProperty(AbortSignal, 'any', signalAny)}
+console.log('Monitor request: works without AbortSignal.any, caller abort still cancels fetch passed')
+
 // The hub's calendar is authoritative, even when the browser date disagrees.
 const { getDaysUntilExpired, getExpireStatus, getExpireText, getRemainingValue } = await import('../utils/tagHelper.ts')
 const past = '2000-01-01'

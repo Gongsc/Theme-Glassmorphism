@@ -47,6 +47,27 @@ function connect() {
     // HTTP polling remains available when proxies do not support WebSocket.
   }
 }
+// 推送还连着或正在连就不动；已经断开、正等 10 秒重连的，立即重连
+function ensureSocket() {
+  if (socket?.readyState === WebSocket.CONNECTING || socket?.readyState === WebSocket.OPEN) return
+  clearTimeout(reconnect)
+  if (socket) {socket.onclose = null; socket.close()}
+  connect()
+}
+// 站点设置、登录状态和节点三路互不依赖，哪一路失败都不丢另外两路的结果：节点读失败时站名、主题配置和登录照样生效，
+// 不会退回默认配置和兜底站名「Monitor」。有一路失败就亮「连接错误」，返回三路是否全部成功
+async function load(current: number) {
+  const store = useAppStore()
+  const api = getSharedApi()
+  const [settings, me, nodes] = await Promise.allSettled([api.getPublicSettings(), api.getMe(), readNodes()])
+  if (stopped || current !== generation) return false
+  if (settings.status === 'fulfilled') {store.publicSettings = settings.value; document.title = settings.value.sitename}
+  if (me.status === 'fulfilled') store.updateLoginState(me.value.logged_in, me.value)
+  if (nodes.status === 'fulfilled') apply(nodes.value)
+  const ok = settings.status === 'fulfilled' && me.status === 'fulfilled' && nodes.status === 'fulfilled'
+  if (!ok) store.connectionError = true
+  return ok
+}
 // 手机把切到后台的页面挂起时会悄悄掐断连接：切回来时 WebSocket 可能仍显示已连接却收不到数据，挂起前发出的请求也会失败，
 // 亮出「连接错误」。所以页面隐藏时停掉轮询和推送、中止在途请求；回到前台立即拉一次并重新连接
 function pause() {
@@ -75,19 +96,12 @@ export async function initApp() {
   const current = ++generation
   const store = useAppStore()
   store.loading = true
-  try {
-    const api = getSharedApi()
-    const [settings, me, nodes] = await Promise.all([api.getPublicSettings(), api.getMe(), readNodes()])
-    if (current !== generation) return
-    store.publicSettings = settings
-    store.updateLoginState(me.logged_in, me)
-    document.title = settings.sitename
-    apply(nodes)
-    connect()
-  } catch {store.connectionError = true}
-  finally {store.loading = false; if (current === generation) void poll()}
+  try {await load(current)} catch {store.connectionError = true}
+  // 首屏没读到节点也照样连推送、开轮询，由它们补上数据
+  finally {store.loading = false; if (current === generation) {connect(); void poll()}}
 }
-export async function retryInitApp() {await initApp(); return !useAppStore().connectionError}
+// 重试只重新拉设置、登录和节点，不拆掉正在工作的推送和轮询；推送已断开的立即重连
+export async function retryInitApp() {ensureSocket(); return load(generation)}
 export function destroyInitManager() {
   stopped = true
   document.removeEventListener('visibilitychange', onVisibility)

@@ -5,12 +5,19 @@ let received = 0
 let pending: Promise<Node[]> | undefined
 let controller: AbortController | undefined
 const historyCache = new Map<string, { time: number, promise: Promise<History> }>()
+// 不用 AbortSignal.any：Safari 17.4 才有，iOS 16 上一调用就抛 TypeError，节点请求根本发不出去，页面只能干等 WebSocket。
+// 这里把调用方的 signal 和 15 秒超时手动接到同一个 controller 上，中止原因照旧透传
 export async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const timeout = AbortSignal.timeout(15000)
-  const response = await fetch(`/api${path}`, { signal: signal ? AbortSignal.any([signal, timeout]) : timeout, credentials: 'same-origin' })
-  if (response.status === 401) location.assign('/admin/')
-  if (!response.ok) throw new Error(`Monitor API ${response.status}`)
-  return response.json()
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(new DOMException('signal timed out', 'TimeoutError')), 15000)
+  const forward = () => controller.abort(signal?.reason)
+  if (signal?.aborted) forward(); else signal?.addEventListener('abort', forward, { once: true })
+  try {
+    const response = await fetch(`/api${path}`, { signal: controller.signal, credentials: 'same-origin' })
+    if (response.status === 401) location.assign('/admin/')
+    if (!response.ok) throw new Error(`Monitor API ${response.status}`)
+    return await response.json()
+  } finally {clearTimeout(timer); signal?.removeEventListener('abort', forward)}
 }
 // Hub 1.3.2 起 /api/me 下发保留天数 history_days（1–365），metrics 的 hours 上限是它 × 24，登录与匿名相同；
 // 旧 Hub 没有这个字段，沿用原来的上限：匿名 168、登录 2160
