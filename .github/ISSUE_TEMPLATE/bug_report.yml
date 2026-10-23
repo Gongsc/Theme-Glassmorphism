@@ -14,7 +14,7 @@ body:
     attributes:
       label: 主题版本
       description: 可在后台「主题」页的主题卡片上查看。
-      placeholder: 例如 1.4.5
+      placeholder: 例如 1.4.6
     validations:
       required: true
 
