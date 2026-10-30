@@ -131,6 +131,30 @@ const legacyCustomRangeFallback = ref(false)
 
 // 任务选择
 const selectedTaskIds = ref<number[]>([])
+// 用户是否手动改过线路筛选：没改过时新数据自动全选；改过则切时间/切自定义区间都保留原筛选
+const taskSelectionTouched = ref(false)
+
+function syncTaskSelection() {
+  const ids = tasks.value.map(t => t.id)
+  if (!ids.length)
+    return
+
+  // 没动过筛选：跟随数据默认全选
+  if (!taskSelectionTouched.value) {
+    selectedTaskIds.value = ids
+    return
+  }
+
+  // 主动全不选：保持空，不因为换了时间区间又被全选回来
+  const previous = selectedTaskIds.value
+  if (!previous.length)
+    return
+
+  // 切换时间区间后线路列表可能变化，保留仍然存在的线路；一条都不剩才退回全选
+  const kept = previous.filter(id => ids.includes(id))
+  selectedTaskIds.value = kept.length ? kept : ids
+}
+
 const cutPeak = ref(false)
 const isTouchTooltipMode = ref(false)
 const activeTaskTooltipId = ref<number | null>(null)
@@ -344,9 +368,8 @@ async function fetchRecords() {
     remoteData.value = records
     tasks.value = result.tasks
 
-    if (tasks.value.length > 0 && selectedTaskIds.value.length === 0) {
-      selectedTaskIds.value = tasks.value.map(t => t.id)
-    }
+    // 首次加载默认全选；切时间区间时保留用户已选线路
+    syncTaskSelection()
   }
   catch (err) {
     if (sequence !== fetchRecordsSequence || requestedUuid !== props.uuid)
@@ -528,6 +551,7 @@ const selectedTasks = computed(() => {
 
 // 切换任务选中状态
 function toggleTask(taskId: number) {
+  taskSelectionTouched.value = true
   if (selectedTaskIds.value.includes(taskId)) {
     selectedTaskIds.value = selectedTaskIds.value.filter(id => id !== taskId)
   }
@@ -537,10 +561,12 @@ function toggleTask(taskId: number) {
 }
 
 function showAllTasks() {
+  taskSelectionTouched.value = true
   selectedTaskIds.value = tasks.value.map(t => t.id)
 }
 
 function hideAllTasks() {
+  taskSelectionTouched.value = true
   selectedTaskIds.value = []
 }
 
@@ -694,7 +720,6 @@ const pingChartOption = computed(() => {
 // ==================== 生命周期 ====================
 
 watch(selectedView, () => {
-  selectedTaskIds.value = []
   if (isCustomRange.value)
     ensureDefaultCustomRange()
   fetchRecords()
@@ -704,6 +729,7 @@ watch(() => props.uuid, () => {
   remoteData.value = []
   tasks.value = []
   selectedTaskIds.value = []
+  taskSelectionTouched.value = false
   activeTaskTooltipId.value = null
   smoothInfoTooltipOpen.value = false
   fetchRecords()
