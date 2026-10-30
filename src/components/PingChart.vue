@@ -69,6 +69,8 @@ const availableViews = computed(() => {
 })
 
 // 当前选中的视图
+const chartMetric = ref('latency')
+const isLossChart = computed(() => chartMetric.value === 'loss')
 const selectedView = ref<string>('')
 const customStartInput = ref('')
 const customEndInput = ref('')
@@ -431,7 +433,10 @@ const mergedData = computed(() => {
     }
 
     const group = grouped.get(useTs)!
-    group[rec.task_id] = rec.value < 0 ? null : rec.value
+    // 丢包直接使用桶内百分比；无该字段的记录不推算为成功或超时。
+    group[rec.task_id] = isLossChart.value
+      ? (typeof rec.monitor_bucket_loss === 'number' && Number.isFinite(rec.monitor_bucket_loss) ? rec.monitor_bucket_loss : null)
+      : (rec.value < 0 ? null : rec.value)
   }
 
   const merged = Array.from(grouped.values()).sort(
@@ -474,6 +479,21 @@ const chartData = computed(() => {
 
   if (selectedKeys.length === 0)
     return []
+
+  // 丢包可选择平滑峰值，但保留原始缺测位置，不为缺测生成数据。
+  if (isLossChart.value) {
+    if (!cutPeak.value)
+      return data
+    const smoothed = cutPeakValues(data, selectedKeys)
+    return smoothed.map((row, index) => {
+      const result = { ...row }
+      for (const key of selectedKeys) {
+        if (data[index]?.[key] == null)
+          result[key] = null
+      }
+      return result
+    })
+  }
 
   if (cutPeak.value) {
     data = cutPeakValues(data, selectedKeys)
@@ -617,7 +637,7 @@ const pingChartOption = computed(() => {
       name: task.name,
       type: 'line' as const,
       data: data.map(d => d[task.id] as number | null ?? null),
-      smooth: cutPeak.value ? 0.6 : 0.1,
+      smooth: isLossChart.value ? false : cutPeak.value ? 0.6 : 0.1,
       showSymbol: false,
       connectNulls: false,
       lineStyle: { width: 1.5, color, cap: 'round' as const, type: lineType },
@@ -666,7 +686,7 @@ const pingChartOption = computed(() => {
             const task = tasks.value.find(t => t.name === item.seriesName)
             const color = task ? colorMap.get(task.id) || chartColors[0] : chartColors[0]
             const colorDot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:8px;flex-shrink:0"></span>`
-            html += `<div style="display:flex;align-items:center">${colorDot}<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.seriesName}</span><span style="margin-left:auto;font-weight:600;margin-left:16px;font-variant-numeric:tabular-nums">${Math.round(item.value)} ms</span></div>`
+            html += `<div style="display:flex;align-items:center">${colorDot}<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.seriesName}</span><span style="margin-left:auto;font-weight:600;margin-left:16px;font-variant-numeric:tabular-nums">${isLossChart.value ? `${item.value.toFixed(1)}%` : `${Math.round(item.value)} ms`}</span></div>`
           }
         }
         html += '</div>'
@@ -701,9 +721,11 @@ const pingChartOption = computed(() => {
     },
     yAxis: {
       type: 'value',
-      name: '延迟 (ms)',
+      name: isLossChart.value ? '丢包率 (%)' : '延迟 (ms)',
+      min: isLossChart.value ? 0 : undefined,
+      max: isLossChart.value ? 100 : undefined,
       nameTextStyle: { color: chartThemeColors.value.textSecondary },
-      axisLabel: { fontSize: 11, color: chartThemeColors.value.textSecondary, formatter: '{value}' },
+      axisLabel: { fontSize: 11, color: chartThemeColors.value.textSecondary, formatter: isLossChart.value ? '{value}%' : '{value}' },
       axisLine: { show: false },
       axisTick: { show: false },
       splitLine: {
@@ -754,6 +776,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="flex flex-col gap-4">
+    <Tabs v-model="chartMetric" class="w-full items-center">
+      <TabsList aria-label="探测图表指标" class="h-8 bg-background/50 backdrop-blur-xl rounded-md">
+        <TabsTrigger value="latency" class="text-xs">延迟</TabsTrigger>
+        <TabsTrigger value="loss" class="text-xs">丢包率</TabsTrigger>
+      </TabsList>
+    </Tabs>
     <!-- 时间选择器 -->
     <div class="flex flex-col gap-2">
       <Tabs v-model="selectedView" class="w-full items-center">
@@ -826,7 +854,7 @@ onBeforeUnmount(() => {
         {{ error }}
       </div>
       <div v-else-if="tasks.length === 0 && !loading" class="py-8">
-        <Empty description="暂无延迟数据" />
+        <Empty :description="isLossChart ? '暂无丢包率数据' : '暂无延迟数据'" />
       </div>
 
       <template v-else>
@@ -949,7 +977,7 @@ onBeforeUnmount(() => {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <span>使用 EWMA 算法平滑数据并过滤突变值</span>
+                  <span>{{ isLossChart ? '使用 EWMA 算法平滑丢包率并过滤突变值，保留缺测空白；统计卡片仍显示原始统计' : '使用 EWMA 算法平滑数据并过滤突变值' }}</span>
                 </TooltipContent>
               </Tooltip>
             </div>
