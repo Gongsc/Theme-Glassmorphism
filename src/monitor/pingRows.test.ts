@@ -27,3 +27,9 @@ assert.equal(missing.name,'不存在的线路');assert.equal(missing.latency,nul
 assert.deepEqual(buildPingRows([], [{id:3,name:'Hong Kong',loss:0}], 'Hong Kong',8).map(r=>r.id),[3])
 assert.deepEqual(buildPingRows([], [{id:3,name:'同名',loss:0},{id:4,name:'同名',loss:0}], '同名,同名',8).map(r=>r.id),[3,4])
 console.log('Multi-ping names: exact matching, ordering, mixed IDs, spaces, duplicates and missing names passed')
+
+const gapRows = buildPingRows([0, 60, 600, 660].map(seconds => ({ task_id: 1, time: new Date(seconds * 1000).toISOString(), value: 10 })), tasks, '1')[0]!
+assert.equal(gapRows.bars[18]!.latency, 10)
+assert.equal(gapRows.bars[17]!.latency, null)
+assert.equal(gapRows.bars[9]!.latency, 10)
+console.log('Sparse ping samples preserve missing time slots')

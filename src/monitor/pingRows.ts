@@ -19,10 +19,13 @@ export function buildPingRows(records: PingSample[], tasks: PingTask[], selected
       .sort((a,b) => Date.parse(a.time)-Date.parse(b.time))
     const bars: PingBar[] = Array.from({length:20}, () => ({time:'',latency:null,loss:null}))
     // Keep one real backend bucket per segment; never average bucket loss percentages.
-    const start = points.length > 20 ? Date.parse(points[0]!.time) : 0
-    const end = points.length > 20 ? Date.parse(points.at(-1)!.time) : 0
-    points.forEach((point,index) => {
-      const slot = points.length <= 20 ? 20-points.length+index : Math.min(19, Math.floor((Date.parse(point.time)-start) / Math.max(1,end-start) * 20))
+    const start = points.length ? Date.parse(points[0]!.time) : 0
+    const end = points.length ? Date.parse(points.at(-1)!.time) : 0
+    const gaps = points.slice(1).map((point, i) => Date.parse(point.time) - Date.parse(points[i]!.time)).filter(gap => gap > 0).sort((a, b) => a - b)
+    const cadence = gaps[Math.floor((gaps.length - 1) / 2)] ?? 1
+    const slotMs = Math.max(cadence, (end - start) / 19)
+    points.forEach((point) => {
+      const slot = Math.max(0, Math.min(19, 19 - Math.round((end - Date.parse(point.time)) / slotMs)))
       bars[slot] = {time:point.time,latency:Number.isFinite(point.value) && point.value >= 0 ? point.value : null,loss: typeof point.monitor_bucket_loss === 'number' && Number.isFinite(point.monitor_bucket_loss) ? point.monitor_bucket_loss : null}
     })
     const latest = points.at(-1)

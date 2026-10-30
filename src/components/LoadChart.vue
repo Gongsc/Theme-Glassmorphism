@@ -21,7 +21,7 @@ import { useNodesStore } from '@/stores/nodes'
 import { getLoadChartPalette } from '@/utils/chartPalette'
 import { formatBytes, formatBytesSplit } from '@/utils/helper'
 import { historyWindows, windowLabel } from '@/monitor/transport'
-import { fillMissingTimePoints } from '@/utils/recordHelper'
+import { insertChartGaps } from '@/monitor/chartGaps'
 import { getSharedRpc } from '@/utils/rpc'
 import '@/utils/echarts' // 共享 ECharts 配置
 
@@ -286,37 +286,12 @@ const chartData = computed(() => {
   if (!data.length)
     return []
 
-  if (isRealtime.value) {
-    return data
-  }
-
-  const hours = effectiveHistoryHours.value
-  const minute = 60
-  const hour = minute * 60
-  let intervalSec: number
-  let maxGap: number
-
-  if (hours <= 4) {
-    intervalSec = minute
-    maxGap = minute * 2
-  }
-  else if (hours > 120) {
-    intervalSec = hour
-    maxGap = hour * 2
-  }
-  else {
-    intervalSec = minute * 15
-    maxGap = minute * 30
-  }
-
-  // Hub 1.3.2 起超过 7 天的窗口读小时汇总，点距（step）可能是数小时：网格不能比点距更密，否则一个点会被铺满多个格子
-  const step = remoteData.value.find(r => Number.isFinite(r.step))?.step ?? 0
-  if (step > intervalSec) {
-    intervalSec = step
-    maxGap = step * 2
-  }
-
-  return fillMissingTimePoints(data, intervalSec, hours * 3600, maxGap)
+  const step = remoteData.value.find(r => Number.isFinite(r.step) && r.step! > 0)?.step
+  return insertChartGaps(data, time => ({
+    ...Object.fromEntries(Object.keys(data[0]!).map(key => [key, null])),
+    client: props.uuid,
+    time,
+  } as RecordFormat), step ? step * 1000 : undefined)
 })
 
 const latestStatus = computed(() => {
@@ -348,9 +323,9 @@ const showDateInAxis = computed(() => (effectiveHistoryHours.value) >= 24)
 
 // 通用 X 轴配置
 const baseXAxisConfig = computed(() => ({
-  type: 'category' as const,
-  data: chartData.value.map(r => formatTime(r.time, showDateInAxis.value)),
+  type: 'time' as const,
   axisLabel: {
+    formatter: (value: number) => formatTime(new Date(value).toISOString(), showDateInAxis.value),
     fontSize: 11,
     color: chartThemeColors.value.textSecondary,
     margin: 12,
@@ -385,6 +360,10 @@ const baseYAxisConfig = computed(() => ({
 // Hub 1.3.2 起每个时间桶带最高 CPU：短时间占满在长窗口的平均值里几乎看不出，峰值用虚线补上
 const hasCpuPeak = computed(() => chartData.value.some(r => r.cpu_peak != null))
 
+function tooltipValues(params: unknown) {
+  return (params as Array<{ value: [number, number | null] }>).map(item => ({ ...item, value: item.value[1] }))
+}
+
 // CPU 图表
 const cpuChartOption = computed(() => ({
   animation: false,
@@ -393,7 +372,7 @@ const cpuChartOption = computed(() => ({
   tooltip: {
     ...baseTooltipConfig.value,
     formatter: (params: unknown) => {
-      const p = params as Array<{ dataIndex: number, seriesName: string, value: number, color: string }>
+      const p = tooltipValues(params) as Array<{ dataIndex: number, seriesName: string, value: number, color: string }>
       if (!p.length)
         return ''
       const firstParam = p[0]
@@ -442,7 +421,8 @@ const cpuChartOption = computed(() => ({
     {
       name: 'CPU',
       type: 'line',
-      data: chartData.value.map(r => r.cpu),
+      data: chartData.value.map(r => [Date.parse(r.time), r.cpu]),
+      connectNulls: false,
 
       showSymbol: false,
       lineStyle: { width: 1.5, color: chartColors.primary, cap: 'round' as const },
@@ -464,7 +444,8 @@ const cpuChartOption = computed(() => ({
       ? [{
           name: '峰值',
           type: 'line',
-          data: chartData.value.map(r => r.cpu_peak),
+          data: chartData.value.map(r => [Date.parse(r.time), r.cpu_peak]),
+      connectNulls: false,
           showSymbol: false,
           lineStyle: { width: 1, type: 'dashed' as const, opacity: 0.6, color: chartColors.primary, cap: 'round' as const },
         }]
@@ -482,7 +463,7 @@ const memoryChartOption = computed(() => ({
   tooltip: {
     ...baseTooltipConfig.value,
     formatter: (params: unknown) => {
-      const p = params as Array<{ dataIndex: number, seriesName: string, value: number, color: string }>
+      const p = tooltipValues(params) as Array<{ dataIndex: number, seriesName: string, value: number, color: string }>
       if (!p.length)
         return ''
       const firstParam = p[0]
@@ -544,7 +525,8 @@ const memoryChartOption = computed(() => ({
     {
       name: 'RAM',
       type: 'line',
-      data: chartData.value.map(r => r.ram),
+      data: chartData.value.map(r => [Date.parse(r.time), r.ram]),
+      connectNulls: false,
 
       showSymbol: false,
       lineStyle: { width: 1.5, color: chartColors.primary, cap: 'round' as const },
@@ -565,7 +547,8 @@ const memoryChartOption = computed(() => ({
     {
       name: 'RAM 总量',
       type: 'line',
-      data: chartData.value.map(r => r.ram_total ?? nodeInfo.value?.mem_total ?? null),
+      data: chartData.value.map(r => [Date.parse(r.time), r.ram == null ? null : r.ram_total ?? nodeInfo.value?.mem_total ?? null]),
+      connectNulls: false,
       showSymbol: false,
       lineStyle: { width: 1.2, type: 'dashed' as const, color: chartColors.quinary, cap: 'round' as const },
     },
@@ -574,14 +557,16 @@ const memoryChartOption = computed(() => ({
           {
             name: 'Swap',
             type: 'line',
-            data: chartData.value.map(r => r.swap),
+            data: chartData.value.map(r => [Date.parse(r.time), r.swap]),
+      connectNulls: false,
             showSymbol: false,
             lineStyle: { width: 1.5, color: chartColors.secondary, cap: 'round' as const },
           },
           {
             name: 'Swap 总量',
             type: 'line',
-            data: chartData.value.map(r => r.swap == null ? null : r.swap_total ?? nodeInfo.value?.swap_total ?? null),
+            data: chartData.value.map(r => [Date.parse(r.time), r.swap == null ? null : r.swap_total ?? nodeInfo.value?.swap_total ?? null]),
+      connectNulls: false,
             showSymbol: false,
             lineStyle: { width: 1.2, type: 'dashed' as const, color: chartColors.quaternary, cap: 'round' as const },
           },
@@ -597,7 +582,7 @@ const diskChartOption = computed(() => ({
   tooltip: {
     ...baseTooltipConfig.value,
     formatter: (params: unknown) => {
-      const p = params as Array<{ dataIndex: number, seriesName: string, value: number, color: string }>
+      const p = tooltipValues(params) as Array<{ dataIndex: number, seriesName: string, value: number, color: string }>
       if (!p.length)
         return ''
       const firstParam = p[0]
@@ -645,7 +630,8 @@ const diskChartOption = computed(() => ({
     {
       name: '磁盘已用',
       type: 'line',
-      data: chartData.value.map(r => r.disk),
+      data: chartData.value.map(r => [Date.parse(r.time), r.disk]),
+      connectNulls: false,
 
       showSymbol: false,
       lineStyle: { width: 1.5, color: chartColors.tertiary, cap: 'round' as const },
@@ -666,7 +652,8 @@ const diskChartOption = computed(() => ({
     {
       name: '磁盘总量',
       type: 'line',
-      data: chartData.value.map(r => r.disk_total ?? nodeInfo.value?.disk_total ?? null),
+      data: chartData.value.map(r => [Date.parse(r.time), r.disk == null ? null : r.disk_total ?? nodeInfo.value?.disk_total ?? null]),
+      connectNulls: false,
       showSymbol: false,
       lineStyle: { width: 1.2, type: 'dashed' as const, color: chartColors.quinary, cap: 'round' as const },
     },
@@ -690,7 +677,7 @@ const networkChartOption = computed(() => ({
   tooltip: {
     ...baseTooltipConfig.value,
     formatter: (params: unknown) => {
-      const p = params as Array<{ dataIndex: number, seriesName: string, value: number | null, color: string }>
+      const p = tooltipValues(params) as Array<{ dataIndex: number, seriesName: string, value: number | null, color: string }>
       if (!p.length)
         return ''
       const firstParam = p[0]
@@ -739,7 +726,8 @@ const networkChartOption = computed(() => ({
     {
       name: '下载',
       type: 'line',
-      data: chartData.value.map(r => r.net_in ?? 0),
+      data: chartData.value.map(r => [Date.parse(r.time), r.net_in]),
+      connectNulls: false,
 
       showSymbol: false,
       lineStyle: { width: 1.5, color: chartColors.quinary, cap: 'round' as const },
@@ -747,7 +735,8 @@ const networkChartOption = computed(() => ({
     {
       name: '上传',
       type: 'line',
-      data: chartData.value.map(r => r.net_out ?? 0),
+      data: chartData.value.map(r => [Date.parse(r.time), r.net_out]),
+      connectNulls: false,
 
       showSymbol: false,
       lineStyle: { width: 1.5, color: chartColors.quaternary, cap: 'round' as const },
@@ -757,14 +746,16 @@ const networkChartOption = computed(() => ({
           {
             name: '下载峰值',
             type: 'line',
-            data: chartData.value.map(r => r.net_in_peak),
+            data: chartData.value.map(r => [Date.parse(r.time), r.net_in_peak]),
+      connectNulls: false,
             showSymbol: false,
             lineStyle: { width: 1, type: 'dashed' as const, opacity: 0.6, color: chartColors.quinary, cap: 'round' as const },
           },
           {
             name: '上传峰值',
             type: 'line',
-            data: chartData.value.map(r => r.net_out_peak),
+            data: chartData.value.map(r => [Date.parse(r.time), r.net_out_peak]),
+      connectNulls: false,
             showSymbol: false,
             lineStyle: { width: 1, type: 'dashed' as const, opacity: 0.6, color: chartColors.quaternary, cap: 'round' as const },
           },
@@ -778,7 +769,7 @@ const hasConnections = computed(() => chartData.value.some(r => r.connections !=
 const hasProcess = computed(() => chartData.value.some(r => r.process != null))
 
 function countTooltip(params: unknown): string {
-  const p = params as Array<{ dataIndex: number, seriesName: string, value: number | null, color: string }>
+  const p = tooltipValues(params) as Array<{ dataIndex: number, seriesName: string, value: number | null, color: string }>
   const firstParam = p[0]
   const record = firstParam ? chartData.value[firstParam.dataIndex] : undefined
   if (!firstParam || !record)
@@ -832,14 +823,16 @@ const connectionsChartOption = computed(() => ({
     {
       name: 'TCP',
       type: 'line',
-      data: chartData.value.map(r => r.connections),
+      data: chartData.value.map(r => [Date.parse(r.time), r.connections]),
+      connectNulls: false,
       showSymbol: false,
       lineStyle: { width: 1.5, color: chartColors.primary, cap: 'round' as const },
     },
     {
       name: 'UDP',
       type: 'line',
-      data: chartData.value.map(r => r.connections_udp),
+      data: chartData.value.map(r => [Date.parse(r.time), r.connections_udp]),
+      connectNulls: false,
       showSymbol: false,
       lineStyle: { width: 1.5, color: chartColors.tertiary, cap: 'round' as const },
     },
@@ -861,7 +854,8 @@ const processChartOption = computed(() => ({
     {
       name: '进程数',
       type: 'line',
-      data: chartData.value.map(r => r.process),
+      data: chartData.value.map(r => [Date.parse(r.time), r.process]),
+      connectNulls: false,
       showSymbol: false,
       lineStyle: { width: 1.5, color: chartColors.quaternary, cap: 'round' as const },
     },

@@ -17,7 +17,8 @@ import { loadPingMetricStats, loadPublicPingTasks, queryMetrics } from '@/servic
 import { useAppStore } from '@/stores/app'
 import { ACCESSIBLE_LINE_TYPES, getChartSeriesPalette } from '@/utils/chartPalette'
 import { isPingMetric, normalizeMetricSeriesList, orderPingTasksByBackend, PING_LATENCY_METRIC, pingTaskId, pingTaskName } from '@/utils/metricSeries'
-import { cutPeakValues, interpolateNullsLinear } from '@/utils/recordHelper'
+import { cutPeakValues } from '@/utils/recordHelper'
+import { insertChartGaps } from '@/monitor/chartGaps'
 import '@/utils/echarts' // 共享 ECharts 配置
 
 const props = defineProps<{
@@ -244,14 +245,11 @@ function buildMetricRecords(seriesList: MetricSeries[]): PingRecord[] {
       continue
 
     for (const point of series.points) {
-      if (point.value === null)
-        continue
-
       records.push({
         client: series.entity_id,
         task_id: taskId,
         time: point.time,
-        value: point.value,
+        value: point.value ?? Number.NaN,
       })
     }
   }
@@ -410,7 +408,11 @@ const mergedData = computed(() => {
   const grouped: Map<number, Record<string, unknown>> = new Map()
   const anchors: number[] = []
 
-  for (const rec of data) {
+  const withGaps = taskList.flatMap(task => insertChartGaps<PingRecord>(
+    data.filter(record => record.task_id === task.id),
+    time => ({ client: props.uuid, task_id: task.id, time, value: Number.NaN }),
+  )).sort((a, b) => Date.parse(a.time) - Date.parse(b.time))
+  for (const rec of withGaps) {
     const ts = dayjs(rec.time).valueOf()
     let anchor: number | null = null
 
@@ -436,7 +438,7 @@ const mergedData = computed(() => {
     // 丢包直接使用桶内百分比；无该字段的记录不推算为成功或超时。
     group[rec.task_id] = isLossChart.value
       ? (typeof rec.monitor_bucket_loss === 'number' && Number.isFinite(rec.monitor_bucket_loss) ? rec.monitor_bucket_loss : null)
-      : (rec.value < 0 ? null : rec.value)
+      : (!Number.isFinite(rec.value) || rec.value < 0 ? null : rec.value)
   }
 
   const merged = Array.from(grouped.values()).sort(
@@ -480,30 +482,15 @@ const chartData = computed(() => {
   if (selectedKeys.length === 0)
     return []
 
-  // 丢包可选择平滑峰值，但保留原始缺测位置，不为缺测生成数据。
-  if (isLossChart.value) {
-    if (!cutPeak.value)
-      return data
-    const smoothed = cutPeakValues(data, selectedKeys)
-    return smoothed.map((row, index) => {
+  if (cutPeak.value) {
+    const original = data
+    data = cutPeakValues(data, selectedKeys).map((row, index) => {
       const result = { ...row }
       for (const key of selectedKeys) {
-        if (data[index]?.[key] == null)
-          result[key] = null
+        if (!Object.hasOwn(original[index] ?? {}, key)) delete result[key]
+        else if (original[index]?.[key] == null) result[key] = null
       }
       return result
-    })
-  }
-
-  if (cutPeak.value) {
-    data = cutPeakValues(data, selectedKeys)
-  }
-
-  if (selectedKeys.length > 0 && data.length > 0) {
-    data = interpolateNullsLinear(data, selectedKeys, {
-      maxGapMultiplier: 6,
-      minCapMs: 2 * 60_000,
-      maxCapMs: 30 * 60_000,
     })
   }
 
@@ -636,7 +623,7 @@ const pingChartOption = computed(() => {
     return {
       name: task.name,
       type: 'line' as const,
-      data: data.map(d => d[task.id] as number | null ?? null),
+      data: data.filter(d => Object.hasOwn(d, task.id)).map(d => [Date.parse(d.time as string), d[task.id] as number | null ?? null]),
       smooth: isLossChart.value ? false : cutPeak.value ? 0.6 : 0.1,
       showSymbol: false,
       connectNulls: false,
@@ -662,13 +649,13 @@ const pingChartOption = computed(() => {
     tooltip: {
       ...baseTooltipConfig.value,
       formatter: (params: unknown) => {
-        const p = params as Array<{ seriesName: string, value: number | null, dataIndex: number }>
+        const p = (params as Array<{ seriesName: string, value: [number, number | null], dataIndex: number }>).map(item => ({ ...item, value: item.value[1], timestamp: item.value[0] }))
         if (!p.length)
           return ''
         const firstParam = p[0]
         if (!firstParam)
           return ''
-        const rowData = data[firstParam.dataIndex]
+        const rowData = data.find(row => Date.parse(row.time as string) === firstParam.timestamp)
         if (!rowData)
           return ''
 
@@ -705,9 +692,9 @@ const pingChartOption = computed(() => {
     },
     grid: chartMargin,
     xAxis: {
-      type: 'category',
-      data: data.map(d => formatTime(d.time as string, showDateInAxis.value)),
+      type: 'time',
       axisLabel: {
+        formatter: (value: number) => formatTime(new Date(value).toISOString(), showDateInAxis.value),
         fontSize: 11,
         color: chartThemeColors.value.textSecondary,
         margin: 12,
