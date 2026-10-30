@@ -36,10 +36,14 @@ jobs:
               if (version !== tag) throw new Error(`${file} version ${version} does not match tag ${tag}`);
             }
           '
+      - name: Check release notes
+        env:
+          TAG: ${{ github.ref_name }}
+        run: test -s "docs/releases/$TAG.md"
       - run: npm ci
       - run: npm run package
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" release/theme.tar.gz --verify-tag --title "$TAG" --generate-notes
+        run: gh release create "$TAG" release/theme.tar.gz --verify-tag --title "$TAG" --notes-file "docs/releases/$TAG.md"
