@@ -4,7 +4,7 @@
 
 本项目将 [sanrokamlan-prog/komari-theme-Glassmorphism](https://github.com/sanrokamlan-prog/komari-theme-Glassmorphism) 主题移植至 [极简探针 Monitor](https://github.com/monitor-probe/monitor)。项目基于原版 v3.3.7 的 Vue 源码、组件、样式与资源，数据改由 Monitor 的 REST 与 WebSocket 接口提供，无需部署 Komari 服务器。
 
-当前版本为 1.4.6，更新记录请查看 [Releases](https://github.com/Gongsc/Theme-Glassmorphism/releases)。本项目沿用原项目的 MIT 许可，并保留原作者署名。
+当前版本为 1.4.7，更新记录请查看 [Releases](https://github.com/Gongsc/Theme-Glassmorphism/releases)。本项目沿用原项目的 MIT 许可，并保留原作者署名。
 
 ## 主要功能
 
