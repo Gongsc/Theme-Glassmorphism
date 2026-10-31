@@ -43,6 +43,37 @@ export function getTrafficUsedPercentage(node: Pick<NodeData, 'traffic_limit' | 
   return clampPercentage(getTrafficUsed(node) / node.traffic_limit * 100)
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** 某年某月按「重置日」落在哪一天；遇到 29/30/31 这类短月时收敛到当月最后一天 */
+function resetDateOfMonth(year: number, month: number, day: number): Date {
+  const lastDay = new Date(year, month + 1, 0).getDate()
+  return new Date(year, month, Math.min(day, lastDay))
+}
+
+/**
+ * 距离下次流量重置还有几天（今天重置为 0）。
+ * Hub 的 traffic_reset_day 是每月重置日；未设置（0 或越界）或没有流量限额时返回 null。
+ */
+export function getDaysUntilTrafficReset(
+  node: Pick<NodeData, 'traffic_limit' | 'traffic_reset_day'>,
+  now: Date = new Date(),
+): number | null {
+  if (!hasTrafficLimit(node))
+    return null
+
+  const resetDay = Math.trunc(node.traffic_reset_day ?? 0)
+  if (!Number.isFinite(resetDay) || resetDay < 1 || resetDay > 31)
+    return null
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  let next = resetDateOfMonth(today.getFullYear(), today.getMonth(), resetDay)
+  if (next.getTime() < today.getTime())
+    next = resetDateOfMonth(today.getFullYear(), today.getMonth() + 1, resetDay)
+
+  return Math.round((next.getTime() - today.getTime()) / DAY_MS)
+}
+
 export function getRealtimeTotalSpeed(node: Pick<NodeData, 'net_in' | 'net_out'>): number {
   return (node.net_in || 0) + (node.net_out || 0)
 }

@@ -40,6 +40,8 @@ export interface NodeData {
   hidden: boolean
   traffic_limit: number
   traffic_limit_type: TrafficLimitType
+  /** Hub 每月流量重置日（1-31）；0 表示未设置 */
+  traffic_reset_day?: number
   created_at: string
   updated_at: string
   // Status 信息
@@ -192,6 +194,7 @@ const useNodesStore = defineStore('nodes', () => {
       hidden: client.hidden,
       traffic_limit: client.traffic_limit,
       traffic_limit_type: client.traffic_limit_type as TrafficLimitType,
+      traffic_reset_day: client.traffic_reset_day ?? 0,
       created_at: client.created_at,
       updated_at: client.updated_at,
       // Status 默认值
@@ -338,6 +341,9 @@ const useNodesStore = defineStore('nodes', () => {
       node.traffic_limit = client.traffic_limit
     if (node.traffic_limit_type !== client.traffic_limit_type)
       node.traffic_limit_type = client.traffic_limit_type as TrafficLimitType
+    const trafficResetDay = client.traffic_reset_day ?? 0
+    if (node.traffic_reset_day !== trafficResetDay)
+      node.traffic_reset_day = trafficResetDay
     if (node.created_at !== client.created_at)
       node.created_at = client.created_at
     if (node.updated_at !== client.updated_at)
