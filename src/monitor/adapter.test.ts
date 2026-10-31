@@ -12,6 +12,9 @@ const node = {
 } as Node
 const {client,status} = mapNode(node)
 assert.equal(client.uuid,'7'); assert.equal(client.billing_cycle,365)
+// 流量重置日用于卡片上的「x 天后重置」提示；旧 Hub 没有该字段时按未设置处理
+assert.equal(client.traffic_reset_day,0)
+assert.equal(mapNode({...node,traffic_reset_day:15}).client.traffic_reset_day,15)
 assert.equal(client.region,'JP'); assert.equal(client.expired_at,'')
 assert.equal(status.ram,200); assert.equal(status.net_in,120); assert.equal(status.net_out,60)
 assert.equal(status.traffic_up,90); assert.equal(status.net_total_up,900)
