@@ -104,6 +104,8 @@ export interface Client {
   hidden: boolean
   traffic_limit: number
   traffic_limit_type: string
+  /** Hub 每月流量重置日（1-31）；0 或缺失表示未设置 */
+  traffic_reset_day?: number
   created_at: string
   updated_at: string
 }

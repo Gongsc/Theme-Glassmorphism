@@ -12,7 +12,7 @@ import { useNodePingDisplay } from '@/composables/useNodePingDisplay'
 import { pingColor } from '@/monitor/pingRows'
 import { useAppStore } from '@/stores/app'
 import { formatBytesPerSecondWithConfig, formatBytesWithConfig, formatDateTime, getStatus, getUptimeDays } from '@/utils/helper'
-import { getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
+import { getDaysUntilTrafficReset, getDiskPercentage, getMemoryPercentage, getTrafficUsed, getTrafficUsedPercentage, hasTrafficLimit } from '@/utils/nodeMetricsHelper'
 import { getOSImage, getOSName } from '@/utils/osImageHelper'
 import { getRegionCode, getRegionDisplayName } from '@/utils/regionHelper'
 import { formatCurrencyValue, formatPriceWithCycle, getDaysUntilExpired, getExpireStatus, getRemainingValue, isFreePrice } from '@/utils/tagHelper'
@@ -111,6 +111,16 @@ const nodeMessageTooltip = computed(() => {
     return ''
   const updatedAt = props.node.status_updated_at ? `\n更新时间：${formatDateTime(props.node.status_updated_at)}` : ''
   return `${message}${updatedAt}`
+})
+
+// 流量悬浮提示：距离下次重置还有几天
+const trafficResetTooltip = computed(() => {
+  const days = getDaysUntilTrafficReset(props.node)
+  if (days === null)
+    return ''
+  if (appStore.lang !== 'zh-CN')
+    return days === 0 ? 'Traffic resets today' : `Traffic resets in ${days} day${days > 1 ? 's' : ''}`
+  return days === 0 ? '今天重置流量' : `${days} 天后重置流量`
 })
 
 // 流量状态颜色
@@ -329,7 +339,7 @@ function hasRegion(region: string | null | undefined): boolean {
             </div>
           </div>
 
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col gap-1" :title="trafficResetTooltip">
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
                 <Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="12" height="12" class="shrink-0 text-violet-500" aria-hidden="true" />
@@ -399,7 +409,7 @@ function hasRegion(region: string | null | undefined): boolean {
           </div>
 
           <!-- 流量（分级颜色） -->
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col gap-1" :title="trafficResetTooltip">
             <div class="flex justify-between text-xs">
               <span class="inline-flex min-w-0 items-center gap-1 text-muted-foreground">
                 <Icon :icon="NODE_METRIC_ICONS.traffic" data-node-metric-icon="traffic" width="13" height="13" class="shrink-0 text-violet-500" aria-hidden="true" />

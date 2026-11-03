@@ -47,6 +47,7 @@ export function mapNode(n: Node) {
     version: n.agent_version, weight: n.sort, price: n.price, currency: n.currency,
     billing_cycle: cycleDays(n.billing_cycle), auto_renewal: false, expired_at: n.expires_at || '', expires_in: n.expires_in,
     group: typeof n.group === 'string' ? n.group : '', hidden: false, traffic_limit: n.traffic_limit, traffic_limit_type: n.traffic_mode,
+    traffic_reset_day: typeof n.traffic_reset_day === 'number' ? n.traffic_reset_day : 0,
     created_at: '', updated_at: '', ...nodeAddresses(n),
   }
   const status = {
