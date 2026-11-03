@@ -64,7 +64,8 @@ const multiPing = computed(() => appStore.publicSettings?.theme_settings?.homepa
 const isMiniNodeCard = computed(() => appStore.nodeCardSize === 'mini')
 const nodeCardXSize = computed(() => appStore.nodeCardSize === 'large' ? 'large' : 'medium')
 const nodeCardContentClass = computed(() => appStore.nodeCardSize === 'large' ? 'gap-4' : isMiniNodeCard.value ? 'gap-2' : 'gap-3')
-const nodeCardContentPaddingClass = computed(() => isMiniNodeCard.value ? 'pb-2' : '')
+// 内容区撑满卡片剩余高度，同一行中没有备注的卡片也与相邻卡片等高
+const nodeCardContentPaddingClass = computed(() => ['flex flex-1 flex-col', isMiniNodeCard.value && 'pb-2'])
 const nodeCardMetricGridClass = 'grid-cols-3'
 const nodeCardMetricBoxClass = computed(() => isMiniNodeCard.value
   ? 'px-1 py-1'
@@ -222,7 +223,7 @@ function hasRegion(region: string | null | undefined): boolean {
     hoverable
     :size="nodeCardXSize"
     :content-class="nodeCardContentPaddingClass"
-    class="node-card w-full cursor-pointer border-none shadow-[0_0_0_3px] shadow-transparent transition-all duration-200 rounded-xl"
+    class="node-card h-full w-full cursor-pointer border-none shadow-[0_0_0_3px] shadow-transparent transition-all duration-200 rounded-xl"
     :class="[!props.node.online && '!shadow-destructive/30']"
     role="button"
     tabindex="0"
@@ -285,7 +286,7 @@ function hasRegion(region: string | null | undefined): boolean {
     <template #default>
       <div
         data-node-card-content
-        class="flex flex-col relative"
+        class="flex flex-1 flex-col relative"
         :class="[nodeCardContentClass, !props.node.online && 'node-card-content--offline']"
       >
         <!-- 在线天数固定展示，价格独立展示，避免不同主机卡片高度不一致；离线时在线天数换成离线标记 -->

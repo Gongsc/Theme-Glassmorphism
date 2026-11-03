@@ -127,7 +127,7 @@ onBeforeUnmount(stopObserving)
 <template>
   <div
     ref="root"
-    class="min-w-0"
+    class="h-full min-w-0"
     :style="rendered ? undefined : { minHeight: `${minHeight}px` }"
   >
     <slot v-if="rendered" />
