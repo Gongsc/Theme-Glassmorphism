@@ -622,6 +622,18 @@ function hasRegion(region: string | null | undefined): boolean {
   white-space: nowrap;
 }
 
+/* 离线文字与时间加一圈背景色阴影，压住下方变淡的数据，保证能看清 */
+.node-card-offline-status > * {
+  text-shadow:
+    0 0 1px var(--background),
+    0 0 2px var(--background),
+    0 0 3px var(--background),
+    0 0 4px var(--background),
+    0 0 6px var(--background),
+    0 0 10px var(--background),
+    0 1px 2px color-mix(in srgb, var(--foreground) 25%, transparent);
+}
+
 .node-card-content--offline > :not(.node-card-status-row):not(.node-card-offline-status) {
   opacity: 0.42;
   filter: saturate(0.55);
