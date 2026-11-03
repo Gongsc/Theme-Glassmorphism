@@ -83,6 +83,7 @@ type NodeViewMode = 'card' | 'list'
 type NodeCardSize = 'mini' | 'compact' | 'comfortable' | 'large'
 type RpcTransportMode = 'websocket' | 'http'
 type EarthRenderer = 'realistic' | 'cobe' | 'tiled' | 'dots'
+type VisitorInfoStyle = 'auto' | 'bar' | 'card'
 type GlassColorPreset = 'emerald' | 'soft' | 'contrast' | 'midnight' | 'custom'
 type ColorVisionMode = 'default' | 'accessible'
 export type ChartDashboardCardKey
@@ -932,6 +933,11 @@ const useAppStore = defineStore('app', () => {
 
   const visitorInfoEnabled = computed<boolean>(() => readBooleanSetting(themeSettings.value, 'visitorInfoEnabled', true))
 
+  const visitorInfoStyle = computed<VisitorInfoStyle>(() => {
+    const value = themeSettings.value.visitorInfoStyle
+    return value === 'bar' || value === 'card' ? value : 'auto'
+  })
+
   const generalCardEnabledMap = computed<Record<GeneralCardKey, boolean>>(() => {
     const settings = themeSettings.value
     const enabledMap = { ...DEFAULT_GENERAL_CARD_ENABLED }
@@ -1236,6 +1242,7 @@ const useAppStore = defineStore('app', () => {
     hideEarth,
     hideGeneralCard,
     visitorInfoEnabled,
+    visitorInfoStyle,
     generalCardEnabledMap,
     generalCardOrder,
     homeToolsEnabled,

@@ -178,8 +178,29 @@
       "key": "visitorInfoEnabled",
       "type": "boolean",
       "default": true,
-      "help": "显示底部访客 IP 条和左下角访客详情卡片",
+      "help": "显示访客 IP 信息，样式见下方“访客信息样式”",
       "label": "显示访客信息"
+    },
+    {
+      "key": "visitorInfoStyle",
+      "type": "select",
+      "default": "auto",
+      "options": [
+        {
+          "value": "auto",
+          "label": "auto"
+        },
+        {
+          "value": "bar",
+          "label": "bar"
+        },
+        {
+          "value": "card",
+          "label": "card"
+        }
+      ],
+      "help": "同一时间只显示一种。auto=超宽屏显示左下角详情卡片，其余屏幕显示底部 IP 条；bar=始终显示底部 IP 条；card=只显示左下角详情卡片（仅超宽屏可见）。",
+      "label": "访客信息样式"
     },
     {
       "key": "glassColorPreset",

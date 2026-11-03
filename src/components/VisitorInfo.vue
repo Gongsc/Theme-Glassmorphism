@@ -291,14 +291,20 @@ function formatDate(): string {
 }
 
 const siteName = computed(() => appStore.privateFeaturesAllowed ? '尊敬的管理员' : '访客')
+
+// 底部 IP 条与左下角卡片内容重复，同一时间只显示一种；左下角卡片只在超宽屏（2xl）有位置放下
+const showCompactBar = computed(() => appStore.visitorInfoStyle !== 'card')
+const showDetailCard = computed(() => appStore.visitorInfoStyle !== 'bar')
+const compactBarClass = computed(() => appStore.visitorInfoStyle === 'auto' && '2xl:hidden')
 </script>
 
 <template>
-  <!-- 底部居中 IP 条（桌面+手机都显示） -->
+  <!-- 底部居中 IP 条（auto 时超宽屏让位给左下角卡片） -->
   <Transition name="slide-up">
     <div
-      v-if="show && !dismissed && !mobileScrolling"
+      v-if="showCompactBar && show && !dismissed && !mobileScrolling"
       data-visitor-compact-bar
+      :class="compactBarClass"
       class="visitor-compact-bar fixed left-1/2 z-50 flex w-max -translate-x-1/2
              items-center gap-1.5 rounded-full px-3 py-1.5 md:gap-2 md:px-4
              bg-white/55 dark:bg-black/50
@@ -319,7 +325,7 @@ const siteName = computed(() => appStore.privateFeaturesAllowed ? '尊敬的管�
   <!-- 左下角详情卡片 — 模仿图二样式 -->
   <Transition name="slide-left">
     <div
-      v-if="show && !dismissed"
+      v-if="showDetailCard && show && !dismissed"
       class="visitor-detail-card fixed z-50 hidden w-56 overflow-hidden rounded-2xl 2xl:block
              bg-white/70 dark:bg-neutral-900/70
              backdrop-blur-xl
