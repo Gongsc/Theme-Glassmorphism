@@ -346,8 +346,23 @@ function openPingDialog(node: NodeData) {
   pingDialogNode.value = node
 }
 
-function getNodeItemTransitionKey(node: NodeData): string {
-  return `${appStore.nodeSelectedGroup}-${selectedRegion.value}-${activeQuickControl.value ?? 'all'}-${node.uuid}`
+// 离开的卡片脱离网格，固定在原位淡出，其余卡片立即开始向新位置移动，避免离开动画结束时整体跳动。
+// 同一次更新里的离开卡片要先统一量好位置再固定，否则先固定的会让后面的卡片在网格里上移。
+let leavingNodeItemBoxes: WeakMap<Element, Record<'left' | 'top' | 'width' | 'height', string>> | null = null
+
+function pinLeavingNodeItem(el: Element): void {
+  if (!leavingNodeItemBoxes) {
+    const boxes = new WeakMap<Element, Record<'left' | 'top' | 'width' | 'height', string>>()
+    for (const child of el.parentElement?.children ?? []) {
+      const item = child as HTMLElement
+      boxes.set(item, { left: `${item.offsetLeft}px`, top: `${item.offsetTop}px`, width: `${item.offsetWidth}px`, height: `${item.offsetHeight}px` })
+    }
+    leavingNodeItemBoxes = boxes
+    queueMicrotask(() => leavingNodeItemBoxes = null)
+  }
+  const box = leavingNodeItemBoxes.get(el)
+  if (box)
+    Object.assign((el as HTMLElement).style, { position: 'absolute', ...box })
 }
 
 function getNodeItemTransitionStyle(index: number): Record<string, string> {
@@ -631,11 +646,14 @@ const nodeCardGridClass = computed(() => {
               :css="enableNodeCardTransition"
               name="node-card-switch"
               tag="div"
+              class="relative"
               :class="nodeCardGridClass"
+              @before-leave="pinLeavingNodeItem"
             >
+              <!-- 切换筛选时按节点复用卡片：仍在列表中的卡片平滑移到新位置，只有新增/移除的卡片淡入淡出 -->
               <div
                 v-for="(node, index) in nodeList"
-                :key="`${getNodeItemTransitionKey(node)}:${deferNodeCards ? 'deferred' : 'full'}`"
+                :key="`${node.uuid}:${deferNodeCards ? 'deferred' : 'full'}`"
                 class="min-w-0"
                 :style="getNodeItemTransitionStyle(index)"
               >
@@ -705,32 +723,33 @@ const nodeCardGridClass = computed(() => {
   display: none;
 }
 
-.node-card-switch-enter-active,
-.node-card-switch-leave-active {
-  transition:
-    opacity 180ms ease,
-    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    filter 180ms ease;
-}
-
 .node-card-switch-enter-active {
+  transition:
+    opacity 260ms ease-out,
+    transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
   transition-delay: var(--node-item-delay, 0ms);
 }
 
+.node-card-switch-leave-active {
+  z-index: 0;
+  pointer-events: none;
+  transition:
+    opacity 180ms ease-in,
+    transform 220ms ease-in;
+}
+
 .node-card-switch-move {
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .node-card-switch-enter-from {
   opacity: 0;
-  transform: translateY(10px) scale(0.985);
-  filter: blur(3px);
+  transform: translateY(12px) scale(0.97);
 }
 
 .node-card-switch-leave-to {
   opacity: 0;
-  transform: translateY(-6px) scale(0.99);
-  filter: blur(2px);
+  transform: scale(0.96);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -749,7 +768,6 @@ const nodeCardGridClass = computed(() => {
   .node-card-switch-leave-to {
     opacity: 1;
     transform: none;
-    filter: none;
   }
 }
 </style>
